@@ -1,0 +1,75 @@
+name: Release
+
+# Sürüm etiketi (v1.0.0, v1.1.0, ...) itildiğinde kurulabilir eklenti ZIP'iyle GitHub sürümü yayımlar.
+#   git tag v1.0.0 && git push origin v1.0.0
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build zip and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring
+          coverage: none
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+
+      - name: Verify tag matches the plugin version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          HEADER_VER="$(grep -m1 -E '^\s*\*\s*Version:' yaziyi-seslendir.php | sed -E 's/.*Version:\s*//; s/\s+$//')"
+          CONST_VER="$(grep -m1 "define( 'YS_VERSION'" yaziyi-seslendir.php | sed -E "s/.*'YS_VERSION', '([^']+)'.*/\1/")"
+          echo "tag=$TAG header=$HEADER_VER constant=$CONST_VER"
+          if [ "$TAG" != "$HEADER_VER" ] || [ "$TAG" != "$CONST_VER" ]; then
+            echo "::error::Tag v$TAG does not match the plugin header ($HEADER_VER) / YS_VERSION ($CONST_VER)."
+            exit 1
+          fi
+          grep -q "^## \[\?$TAG" CHANGELOG.md || { echo "::error::CHANGELOG.md has no entry for $TAG."; exit 1; }
+
+      - name: Run the test suite
+        run: sh tests/run.sh
+
+      - name: Build plugin zip
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # Whitelist: yalnızca çalışma zamanında gerekenler (+ belgeler). Depoya eklenen yeni dosyalar ZIP'e girmez.
+          mkdir -p build/yaziyi-seslendir
+          cp yaziyi-seslendir.php uninstall.php LICENSE README.md README.tr.md CHANGELOG.md build/yaziyi-seslendir/
+          cp -r includes assets build/yaziyi-seslendir/
+          (cd build && zip -r "../yaziyi-seslendir-${VERSION}.zip" yaziyi-seslendir)
+          unzip -l "yaziyi-seslendir-${VERSION}.zip" | tail -n 20
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[?" v "\\]?" { found=1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md || echo "Release $VERSION" > release-notes.md
+          cat release-notes.md
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" "yaziyi-seslendir-${VERSION}.zip" \
+            --title "Yazıyı Seslendir ${VERSION}" \
+            --notes-file release-notes.md

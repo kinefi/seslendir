@@ -1,0 +1,77 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  php-tests:
+    name: PHP ${{ matrix.php }} (lint + unit tests)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Eklenti PHP 8.4+ ister: desteklenen iki sürümde sınanır.
+        php: [ '8.4', '8.5' ]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring
+          coverage: none
+
+      - name: Lint PHP files
+        run: find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+
+      - name: Run PHP tests (WordPress functions are stubbed in tests/wp_stubs.php)
+        run: |
+          for f in tests/test_*.php; do
+            echo "-- $f"
+            php "$f"
+          done
+
+  js-tests:
+    name: JavaScript (syntax + audio tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+
+      - name: Check JS syntax
+        run: |
+          for f in assets/*.js tests/*.js; do
+            node --check "$f"
+          done
+
+      - name: Run audio tests
+        run: node tests/audio.test.js
+
+  suite:
+    name: Local runner (tests/run.sh)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring
+          coverage: none
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+
+      - name: Run the whole suite exactly as a contributor would
+        run: sh tests/run.sh

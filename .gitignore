@@ -1,0 +1,33 @@
+# Build çıktıları (release workflow üretir)
+/build/
+*.zip
+release-notes.md
+
+# Bağımlılıklar (eklentinin kendisi kullanmaz)
+/vendor/
+/node_modules/
+composer.lock
+package-lock.json
+
+# Motor paketi (büyük ikili dosyalar depoya girmez)
+*.wasm
+*.data
+lame.min.js
+
+# Yerel araç çıktıları
+*.log
+*.tmp
+.phpcs-cache
+__pycache__/
+
+# Gizli bilgiler
+.env
+.env.*
+
+# Editör ve işletim sistemi
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db

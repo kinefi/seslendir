@@ -12,7 +12,7 @@ Kaynak kod, sorunlar ve sürümler: <https://github.com/kinefi/yaziyi-seslendir>
 
 ## Nasıl çalışır?
 
-1. Düzenleme yetkisi olan biri **Araçlar → Yazıyı Seslendir** sayfasını açar ve bir yazı için **Üret**'e basar (ya da birçok yazı seçer).
+1. Düzenleme yetkisi olan biri sol yönetim menüsündeki **Yazıyı Seslendir** sayfasını açar ve bir yazı için **Üret**'e basar (ya da birçok yazı seçer).
 2. Eklenti metni sunucuda hazırlar (sayılar, tarihler, para, kısaltmalar → okunuşa çevrilir) ve cümlelere böler.
 3. Tarayıcı yerel bir WebAssembly ses motoru (sherpa-onnx üzerinde Piper Türkçe sesi) yükler ve sesi üretir. İlerleme, kapatılamayan bir pencerede gösterilir.
 4. İsterseniz sonucu **dinleyip onaylarsınız**; ses kimlik doğrulamalı bir REST uç noktasından yüklenir ve yazıya bağlanır.
@@ -20,19 +20,25 @@ Kaynak kod, sorunlar ve sürümler: <https://github.com/kinefi/yaziyi-seslendir>
 
 ## Gereksinimler
 
-- WordPress 5.8+, PHP 8.4+ (`mbstring`), HTTPS önerilir.
+- WordPress 7.0+, PHP 8.4+ (`mbstring`), HTTPS önerilir.
 - Sesi üreten kişi için WebAssembly destekleyen güncel bir masaüstü tarayıcı (Chrome, Edge, Firefox, Safari). Ziyaretçiler için `<audio>` desteği yeterli.
-- Ses motoru dosyaları (aşağıya bakın). Büyüktürler (≈ 70–100 MB) ve eklentiyle **birlikte gelmezler**.
+- Ses motoru dosyaları (≈ 70–100 MB). Eklentiyle **birlikte gelmezler**; eklenti sizin için indirir (sonraki bölüm).
+- Otomatik indirme için sunucunun `github.com` adresine dışarı HTTPS isteği atabilmesi gerekir. Atamıyorsa elle ZIP ya da FTP yolunu kullanın.
 
 ## Kurulum
 
 1. Eklenti klasörünü `wp-content/plugins/` içine yükleyin (ya da sürüm ZIP'ini kurun) ve etkinleştirin.
-2. **Araçlar → Yazıyı Seslendir → Kurulum** sekmesinden **motor paketini** yükleyin (sonraki bölüm).
+2. **Yazıyı Seslendir → Kurulum** sekmesini açın ve **Otomatik indir ve kur**'a basın. Paket küçük parçalarla, ilerleme çubuğuyla indirilir; her dosya SHA-256 ile doğrulanır; yarıda kalan indirme kaldığı yerden devam eder.
 3. **Ayarlar** sekmesinde seslendirilecek içerik türlerini seçin. Varsayılan olarak yalnızca "Yazılar" etkindir.
 
-## Motor paketi
+### Motor paketi nereden geliyor?
 
-Paket, [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)'in WebAssembly TTS hedefinden, içine Piper Türkçe sesi gömülerek derlenmiş dört dosyadan ve bir isteğe bağlı dosyadan oluşur:
+İndirilebilir hazır bir Türkçe sherpa-onnx WebAssembly paketi yoktur; çünkü sherpa'nın hazır paketlerinin her birinin sesi içine gömülüdür. Bu yüzden bu depo paketi kendisi derler:
+
+- **Proje sahibi, bir kez:** GitHub → **Actions → Build engine pack → Run workflow**. İş akışı sherpa-onnx'i Piper `tr_TR-fettah-medium` sesiyle WebAssembly için derler, sonucu başsız Chromium'da açıp gerçekten Türkçe konuştuğunu doğrular, sonra dosyaları ve `engine-manifest.json`'u `engine-1` GitHub sürümü olarak yayımlar. Duman testi başarısızsa hiçbir şey yayımlanmaz.
+- **Her site:** **Otomatik indir** düğmesi bu manifesti okur ve dosyaları indirir.
+
+İş akışı bir kez çalışana kadar Kurulum sekmesi paketin henüz yayımlanmadığını söyler. Sunucunuz GitHub'a ulaşamıyorsa `engine-1` sürümündeki `yaziyi-seslendir-motor.zip` dosyasını indirip **Kurulum** sekmesinden yükleyin ya da dosyaları FTP ile `wp-content/uploads/yaziyi-seslendir-motor/` klasörüne kopyalayın.
 
 | Dosya | Zorunlu | Görevi |
 |---|---|---|
@@ -40,16 +46,11 @@ Paket, [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)'in WebAssembly TTS h
 | `sherpa-onnx-wasm-main-tts.js` | evet | Emscripten yükleyicisi |
 | `sherpa-onnx-wasm-main-tts.wasm` | evet | Çalışma zamanı |
 | `sherpa-onnx-wasm-main-tts.data` | evet | Paketlenmiş model, `tokens.txt` ve `espeak-ng-data` |
-| `lame.min.js` | hayır | [lamejs](https://github.com/zhuker/lamejs); varsa ses WAV yerine küçük MP3 olarak kaydedilir |
+| `lame.min.js` | hayır | [lamejs](https://github.com/zhuker/lamejs) (LGPL); varsa ses WAV yerine küçük MP3 olarak kaydedilir |
 
-Bir kez, herhangi bir bilgisayarda hazırlanır:
+Başka bir sunucu ya da farklı bir ses için `YS_ENGINE_MANIFEST_URL` sabitini (ya da `ys_engine_manifest_url` filtresini) ayarlayın; sunucu GitHub ya da Hugging Face değilse `ys_engine_allowed_hosts` filtresiyle ekleyin. Manifest dosyaları `https` olmalı, yalnızca yukarıdaki beş dosya adını içermeli ve her dosya için SHA-256 taşımalıdır.
 
-1. Türkçe sesi edinin, örneğin `tr_TR-fettah-medium` (tek konuşmacı; eğitim verisi CC0, model kartına bakın). `tokens.txt` ve `espeak-ng-data/` ile birlikte hazır hâli Hugging Face'te `csukuangfj/vits-piper-tr_TR-fettah-medium` adıyla bulunur.
-2. sherpa-onnx'in *WebAssembly text-to-speech* derleme yönergelerini izleyin. Derlemeden önce modeli `model.onnx` adıyla, `tokens.txt` ve `espeak-ng-data/` klasörüyle birlikte TTS varlıklar klasörüne koyun; böylece `sherpa-onnx-wasm-main-tts.data` içine paketlenirler. Betik ve klasör adları sherpa-onnx sürümüne göre değişebilir; indirdiğiniz sürümün belgesine uyun.
-3. Çıktıları `sh tools/make-engine-pack.sh <derleme-klasörü> [lame.min.js]` ile ZIP'leyin.
-4. ZIP'i **Kurulum** sekmesinden yükleyin. Hostingin yükleme sınırı küçükse dosyaları FTP ile o sekmede yazan klasöre (`wp-content/uploads/yaziyi-seslendir-motor/`) kopyalayın.
-
-> **Durum notu:** PHP, normalleştirici, depolama ve arayüz kodu otomatik testlerle sınanmıştır. WebAssembly motorunun kendisi bu sürümün hazırlandığı ortamda derlenip çalıştırılamadı. Bu yüzden kurulumdan sonra ilk iş küçük bir deneme yapın: paketi kurun, bir yazıda **Önizle**'ye basıp dinleyin. Sorun olursa penceredeki hata mesajını aynen iletin.
+> **Durum notu:** PHP, normalleştirici, depolama, indirme ve arayüz kodu otomatik testlerle sınanmıştır. WebAssembly motorunun kendisi bu sürümün hazırlandığı ortamda derlenemedi; yani *Build engine pack* iş akışı onun ilk gerçek çalıştırmasıdır ve paketin çalıştığını duman testi kanıtlar. Derleme adımı hata verirse o adımın günlüğünü açın (sherpa-onnx betik adı ya da varlık düzeni sürümler arasında değişebilir; `sherpa_ref` girdisiyle bir sürümü sabitleyebilirsiniz).
 
 ## Kullanım
 
@@ -78,19 +79,20 @@ Bir kez, herhangi bir bilgisayarda hazırlanır:
 
 ## Güvenlik ve gizlilik
 
-- Her şey sitenizde ve tarayıcınızda çalışır; üçüncü taraflara hiçbir şey gönderilmez.
-- REST uç noktaları oturum açmış kullanıcı, REST nonce'u ve ilgili yazı için `edit_post` yetkisi ister. Listeleme `edit_posts` ister; yazarlar yalnızca kendi yazılarını görür.
+- Her şey sitenizde ve tarayıcınızda çalışır; üçüncü taraflara hiçbir şey gönderilmez. Tek dışarı istek, yönetici düğmeye bastığında sunucunun yaptığı isteğe bağlı motor indirmesidir (GitHub).
+- REST uç noktaları oturum açmış kullanıcı ve REST nonce'u ister. Yazı uç noktaları ilgili yazı için `edit_post`, listeleme `edit_posts` (yazarlar yalnızca kendi yazılarını görür), motor uç noktaları `manage_options` ister.
+- Motor indirmesi: manifest ve dosya adresleri `https` ve izinli bir sunucuda olmalı, dosya adları beş sabit addan biri olmalı, boyutlar sınırlıdır ve her dosya yerine konmadan önce manifestteki SHA-256 ile doğrulanır. Aynı anda yalnızca tek indirme çalışır.
 - Yükleme yalnızca gerçekten WAV/MP3 olan, boyut sınırı içindeki ve üretilen metnin özetiyle (hash) eşleşen veriyi kabul eder; arada değişen yazı HTTP 409 ile reddedilir.
 - Özel, şifreli ve yayımlanmamış yazılar seslendirilmez; çünkü ses dosyasının adresi herkese açıktır.
 - Motor ZIP'i yalnızca beş izinli dosya adını yazar, arşivdeki tüm yol bilgisini yok sayar ve `manage_options` yetkisi ister.
-- Eklenti silinince ayarlar ve cron olayı kaldırılır; üretilmiş sesler Medya Kitaplığı'nda kalır.
+- Eklenti silinince ayarlar ve cron olayı kaldırılır; üretilmiş sesler ve motor dosyaları diskte kalır.
 
 ## Bilinen sınırlar
 
 - Kalite, tek bir orta boy Piper sesinin kalitesidir: net ve doğal, ama stüdyo düzeyinde değil.
 - Üretim hızı editörün bilgisayarına bağlıdır. Uzun yazılar dakikalar sürer.
 - Kesme işaretinden sonraki para ekleri atılır (`₺100'ü` → "yüz lira").
-- WAV dosyaları büyüktür (dakikada ≈ 2,6 MB). MP3 için `lame.min.js` ekleyin.
+- WAV dosyaları büyüktür (dakikada ≈ 2,6 MB). Motor paketi, bulunabildiğinde `lame.min.js` içerir; o zaman MP3 kullanılır.
 - Arayüz dili yalnızca Türkçe.
 
 ## Geliştirme
@@ -100,10 +102,12 @@ sh tests/run.sh        # PHP lint, JS sözdizimi, PHP testleri, JS testleri
 ```
 
 - `tests/`: PHP testleri (WordPress işlevleri `tests/wp_stubs.php` içinde taklit edilir) ve JavaScript testleri.
+- `tools/make-engine-manifest.py`: `engine-manifest.json` yazar; `tools/engine-smoke.mjs`: motor paketinin başsız Chromium duman testi.
 - `.github/workflows/tests.yml`: PHP 8.4 / 8.5 ve Node üzerinde lint ve testler.
 - `.github/workflows/security.yml`: WordPress güvenlik kuralları, PHP 8.4 uyumluluğu, Semgrep, CodeQL, Gitleaks (haftalık ve her push/PR'da).
+- `.github/workflows/build-engine.yml`: motor paketini derler, duman testinden geçirir ve yayımlar (elle tetiklenir).
 - `.github/workflows/release.yml`: `vX.Y.Z` etiketi itilince kurulabilir ZIP'i üretip GitHub sürümü yayımlar. Etiket; eklenti başlığındaki sürüm, `YS_VERSION` ve `CHANGELOG.md` kaydıyla eşleşmelidir.
 
 ## Lisans
 
-GPL-2.0-or-later. [LICENSE](LICENSE) dosyasına bakın. Ses modellerinin ve sherpa-onnx çalışma zamanının kendi lisansları vardır; ticari kullanımdan önce kontrol edin.
+GPL-3.0-or-later. [LICENSE](LICENSE) dosyasına bakın. Ses modellerinin, sherpa-onnx çalışma zamanının ve lamejs'in kendi lisansları vardır; ticari kullanımdan önce kontrol edin.

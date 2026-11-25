@@ -21,3 +21,8 @@ body.ys-lock{overflow:hidden}
 .ys-actions{display:flex;gap:8px;justify-content:flex-end}
 .ys-errors{margin:8px 0 0 18px;list-style:disc;color:#b32d2e}
 .ys-engine td:first-child{width:40%}
+.ys-card{max-width:720px;margin:12px 0 20px;padding:4px 16px 12px;border:1px solid #c3c4c7;border-radius:6px;background:#fff}
+.ys-setup-error{color:#b32d2e;margin:6px 0}
+.ys-setup-info{margin:8px 0}
+.ys-card .ys-bar{display:block;width:100%;max-width:560px}
+.ys-card .ys-bar[hidden]{display:none}

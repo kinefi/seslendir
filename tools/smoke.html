@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Yazıyı Seslendir motor duman testi</title>
+<script src="/assets/ys-engine.js"></script>
+<script>
+// Eklentideki yükleme koduyla (assets/ys-engine.js) motoru yükler ve Türkçe bir cümle seslendirir.
+window.__smoke = null;
+YSEngine.load( { base: '/engine/', ver: 'smoke', lame: false, timeout: 240000 } ).then( function ( tts ) {
+	var audio = tts.generate( { text: 'Merhaba dünya. Bugün hava çok güzel.', sid: 0, speed: 1 } );
+	var peak = 0;
+	for ( var i = 0; i < audio.samples.length; i++ ) {
+		peak = Math.max( peak, Math.abs( audio.samples[ i ] ) );
+	}
+	window.__smoke = { ok: true, sampleRate: audio.sampleRate, samples: audio.samples.length, peak: peak, speakers: tts.numSpeakers };
+}, function ( e ) {
+	window.__smoke = { ok: false, error: String( e && e.message ? e.message : e ) };
+} );
+</script>

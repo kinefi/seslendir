@@ -2,7 +2,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Yönetim: Araçlar → Yazıyı Seslendir sayfası (Yazılar / Kurulum / Ayarlar)
+ * Yönetim: sol menüde "Yazıyı Seslendir" sayfası (Yazılar / Kurulum / Ayarlar)
  * ve Yazılar listesindeki salt-okunur "Ses" sütunu.
  * Başka hiçbir yönetim ekranı değiştirilmez.
  */
@@ -20,23 +20,59 @@ class YS_Admin {
 	}
 
 	public static function menu() {
-		self::$hook = (string) add_management_page( 'Yazıyı Seslendir', 'Yazıyı Seslendir', 'edit_posts', self::SLUG, array( __CLASS__, 'render' ) );
+		self::$hook = (string) add_menu_page(
+			'Yazıyı Seslendir',
+			'Yazıyı Seslendir',
+			'edit_posts',
+			self::SLUG,
+			array( __CLASS__, 'render' ),
+			'dashicons-controls-volumeon',
+			26
+		);
 	}
 
 	public static function page_url( array $args = array() ) {
-		return add_query_arg( array_merge( array( 'page' => self::SLUG ), $args ), admin_url( 'tools.php' ) );
+		return add_query_arg( array_merge( array( 'page' => self::SLUG ), $args ), admin_url( 'admin.php' ) );
 	}
 
 	/* ---------- Varlıklar ---------- */
+
+	/** Geçerli sekme (yalnızca görüntüleme; durum değiştirmez). */
+	private static function current_tab() {
+		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'yazilar'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- yalnızca sekme seçimi.
+		if ( ! in_array( $tab, array( 'yazilar', 'kurulum', 'ayarlar' ), true ) || ( 'yazilar' !== $tab && ! current_user_can( 'manage_options' ) ) ) {
+			return 'yazilar';
+		}
+		return $tab;
+	}
 
 	public static function assets( $hook ) {
 		if ( $hook !== self::$hook ) {
 			return;
 		}
-		$status = YS_Settings::engine_status();
 		wp_enqueue_style( 'ys-admin', YS_URL . 'assets/admin.css', array(), YS_VERSION );
+		$tab = self::current_tab();
+
+		if ( 'kurulum' === $tab ) {
+			wp_enqueue_script( 'ys-setup', YS_URL . 'assets/setup.js', array(), YS_VERSION, true );
+			wp_localize_script(
+				'ys-setup',
+				'YSSetup',
+				array(
+					'rest'  => esc_url_raw( rest_url( YS_REST::NS . '/' ) ),
+					'nonce' => wp_create_nonce( 'wp_rest' ),
+				)
+			);
+			return;
+		}
+		if ( 'yazilar' !== $tab ) {
+			return;
+		}
+
+		$status = YS_Settings::engine_status();
 		wp_enqueue_script( 'ys-audio', YS_URL . 'assets/ys-audio.js', array(), YS_VERSION, true );
-		wp_enqueue_script( 'ys-admin', YS_URL . 'assets/admin.js', array( 'ys-audio' ), YS_VERSION, true );
+		wp_enqueue_script( 'ys-engine', YS_URL . 'assets/ys-engine.js', array(), YS_VERSION, true );
+		wp_enqueue_script( 'ys-admin', YS_URL . 'assets/admin.js', array( 'ys-audio', 'ys-engine' ), YS_VERSION, true );
 
 		$start = isset( $_GET['ys_start'] ) ? absint( $_GET['ys_start'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- yalnızca otomatik açılacak yazıyı belirtir; işlem REST nonce'u ile yapılır.
 		wp_localize_script(
@@ -64,10 +100,7 @@ class YS_Admin {
 		if ( ! current_user_can( 'edit_posts' ) ) {
 			wp_die( esc_html( 'Bu sayfaya erişim yetkiniz yok.' ) );
 		}
-		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'yazilar'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- yalnızca sekme seçimi.
-		if ( ! in_array( $tab, array( 'yazilar', 'kurulum', 'ayarlar' ), true ) || ( 'yazilar' !== $tab && ! current_user_can( 'manage_options' ) ) ) {
-			$tab = 'yazilar';
-		}
+		$tab  = self::current_tab();
 		$tabs = array( 'yazilar' => 'Yazılar' );
 		if ( current_user_can( 'manage_options' ) ) {
 			$tabs['kurulum'] = 'Kurulum';
@@ -117,8 +150,13 @@ class YS_Admin {
 		$dir = YS_Settings::engine_dir();
 
 		echo '<h2>Ses motoru</h2>';
-		echo '<p>Sesler, ziyaretçiye değil <strong>sizin tarayıcınıza</strong> yüklenen yerel bir motorla üretilir. Hiçbir dış servis kullanılmaz; dosyalar sitenizin <code>uploads</code> klasöründe durur. Motor paketini nasıl hazırlayacağınız eklentinin <code>README.tr.md</code> dosyasında anlatılır.</p>';
+		echo '<p>Sesler, ziyaretçiye değil <strong>sizin tarayıcınıza</strong> yüklenen yerel bir motorla üretilir. Hiçbir dış servis kullanılmaz; motor dosyaları sitenizin <code>uploads</code> klasöründe durur.</p>';
 
+		echo '<div class="ys-card"><h3>Otomatik kurulum (önerilen)</h3>';
+		echo '<p>Motor paketini (Türkçe ses modeli dahil, yaklaşık 70–100 MB) projenin GitHub sürümünden indirir. İndirme küçük parçalarla yapılır, paylaşımlı hostinglerde de çalışır ve her dosya SHA-256 ile doğrulanır. Sayfayı kapatırsanız kaldığı yerden devam eder.</p>';
+		echo '<div id="ys-setup-auto"><noscript>Bu bölüm JavaScript gerektirir.</noscript></div></div>';
+
+		echo '<h3>Dosya durumu</h3>';
 		echo '<table class="widefat striped ys-engine"><thead><tr><th>Dosya</th><th>Durum</th><th>Boyut</th></tr></thead><tbody>';
 		foreach ( $st['files'] as $name => $size ) {
 			$required = in_array( $name, YS_Settings::engine_required(), true );
@@ -132,8 +170,8 @@ class YS_Admin {
 		echo '</tbody></table>';
 		printf( '<p>%s</p>', esc_html( $st['ready'] ? 'Motor hazır. Yazılar sekmesinden seslendirmeye başlayabilirsiniz.' : 'Motor henüz hazır değil.' ) );
 
-		echo '<h3>Paketi yükle</h3>';
-		echo '<p>Motor dosyalarını ZIP olarak yükleyin. Yalnızca yukarıdaki dosya adları kabul edilir; başka her şey yok sayılır.</p>';
+		echo '<h3>Elle kurulum (yedek)</h3>';
+		echo '<p>Sunucunuz dış adreslere bağlanamıyorsa GitHub sürümlerindeki <code>yaziyi-seslendir-motor.zip</code> dosyasını bilgisayarınıza indirip buradan yükleyin. Yalnızca yukarıdaki dosya adları kabul edilir; başka her şey yok sayılır.</p>';
 		printf( '<form method="post" action="%s" enctype="multipart/form-data">', esc_url( admin_url( 'admin-post.php' ) ) );
 		echo '<input type="hidden" name="action" value="ys_upload_engine">';
 		wp_nonce_field( 'ys_engine_upload' );

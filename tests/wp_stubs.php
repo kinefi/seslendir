@@ -18,6 +18,12 @@ function update_option( $k, $v ) {
 	return true;
 }
 function register_setting() {}
+function wp_parse_url( $u, $c = -1 ) {
+	return parse_url( $u, $c );
+}
+function apply_filters( $tag, $value ) {
+	return $value;
+}
 function wp_parse_args( $a, $d ) {
 	return array_merge( $d, (array) $a );
 }

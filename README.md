@@ -12,7 +12,7 @@ Source code, issues and releases: <https://github.com/kinefi/yaziyi-seslendir>
 
 ## How it works
 
-1. A person with edit access opens **Tools → Yazıyı Seslendir** and presses **Üret** for a post (or selects many).
+1. A person with edit access opens **Yazıyı Seslendir** in the left admin menu and presses **Üret** for a post (or selects many).
 2. The plugin prepares the text on the server (numbers, dates, currency, abbreviations → spoken Turkish) and splits it into sentences.
 3. The browser loads a local WebAssembly speech engine (sherpa-onnx running a Piper Turkish voice) and synthesizes the audio. A blocking dialog shows progress.
 4. Optionally you **listen and approve** the result, then it is uploaded through an authenticated REST endpoint and attached to the post.
@@ -20,19 +20,25 @@ Source code, issues and releases: <https://github.com/kinefi/yaziyi-seslendir>
 
 ## Requirements
 
-- WordPress 5.8+, PHP 8.4+ (`mbstring`), HTTPS recommended.
+- WordPress 7.0+, PHP 8.4+ (`mbstring`), HTTPS recommended.
 - A modern desktop browser for whoever generates audio (Chrome, Edge, Firefox or Safari with WebAssembly). Visitors only need an `<audio>`-capable browser.
-- The speech engine files (see below). They are large (≈ 70–100 MB) and are **not bundled**.
+- The speech engine files (≈ 70–100 MB). They are **not bundled**; the plugin downloads them for you (next section).
+- For the automatic download: the server must be able to make outbound HTTPS requests to `github.com`. Otherwise use the manual ZIP or FTP route.
 
 ## Installation
 
 1. Upload the plugin folder to `wp-content/plugins/` (or install the release zip) and activate it.
-2. Prepare and install the **engine pack** (next section) from **Tools → Yazıyı Seslendir → Kurulum**.
+2. Open **Yazıyı Seslendir → Kurulum** and press **Otomatik indir ve kur**. The pack is downloaded in small chunks with a progress bar, each file is verified with SHA-256, and an interrupted download resumes where it stopped.
 3. Open **Ayarlar** and pick the content types to voice. Posts are enabled by default.
 
-## The engine pack
+### Where the engine pack comes from
 
-The pack contains four files built from [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)'s WebAssembly TTS target with a Piper Turkish voice baked in, plus one optional file:
+There is no ready-made Turkish sherpa-onnx WebAssembly build to download, because each prebuilt sherpa package has its voice baked in. This repository therefore builds one itself:
+
+- **Maintainer, once:** GitHub → **Actions → Build engine pack → Run workflow**. It builds sherpa-onnx for WebAssembly with the Piper `tr_TR-fettah-medium` voice, loads the result in headless Chromium and checks that it really speaks Turkish, then publishes the files plus `engine-manifest.json` as the GitHub release `engine-1`. Nothing is published if the smoke test fails.
+- **Every site:** the **Otomatik indir** button reads that manifest and downloads the files.
+
+Until the workflow has run once, the Kurulum tab says the pack is not published yet. If your server cannot reach GitHub, download `yaziyi-seslendir-motor.zip` from the `engine-1` release and upload it in the **Kurulum** tab, or copy the files by FTP to `wp-content/uploads/yaziyi-seslendir-motor/`.
 
 | File | Required | Purpose |
 |---|---|---|
@@ -40,16 +46,11 @@ The pack contains four files built from [sherpa-onnx](https://github.com/k2-fsa/
 | `sherpa-onnx-wasm-main-tts.js` | yes | Emscripten loader |
 | `sherpa-onnx-wasm-main-tts.wasm` | yes | Runtime |
 | `sherpa-onnx-wasm-main-tts.data` | yes | Packed model, tokens and `espeak-ng-data` |
-| `lame.min.js` | no | [lamejs](https://github.com/zhuker/lamejs); when present audio is saved as small MP3 files instead of WAV |
+| `lame.min.js` | no | [lamejs](https://github.com/zhuker/lamejs) (LGPL); when present audio is saved as small MP3 files instead of WAV |
 
-Building it, once, on any computer:
+Other hosts or a different voice: set the `YS_ENGINE_MANIFEST_URL` constant (or the `ys_engine_manifest_url` filter) and, if the host is not GitHub or Hugging Face, add it with the `ys_engine_allowed_hosts` filter. Manifest files must be `https`, list only the five file names above, and carry a SHA-256 for each file.
 
-1. Get the Turkish voice, e.g. `tr_TR-fettah-medium` (single speaker; its training dataset is CC0, see the model card). A ready-to-use sherpa-onnx copy with `tokens.txt` and `espeak-ng-data/` exists as `csukuangfj/vits-piper-tr_TR-fettah-medium` on Hugging Face.
-2. Follow the sherpa-onnx *WebAssembly text-to-speech* build instructions. Put the model as `model.onnx`, plus `tokens.txt` and the `espeak-ng-data/` folder, into the TTS assets directory before building, so they are packed into `sherpa-onnx-wasm-main-tts.data`. Exact script and folder names depend on the sherpa-onnx version, so follow the docs of the version you check out.
-3. Zip the outputs with `sh tools/make-engine-pack.sh <build-folder> [lame.min.js]`.
-4. Upload the zip in the **Kurulum** tab. If your host's upload limit is too small, copy the files by FTP to the folder shown on that tab (`wp-content/uploads/yaziyi-seslendir-motor/`).
-
-> **Status note:** the PHP, normalizer, storage and UI code is covered by automated tests. The WebAssembly engine itself could not be built or exercised in the environment where this release was authored, so please run a first smoke test on your site: install the pack, press **Önizle** on one post and listen. Report problems with the exact browser message shown in the dialog.
+> **Status note:** the PHP, normalizer, storage, download and UI code is covered by automated tests. The WebAssembly engine itself could not be built in the environment where this release was authored, so the *Build engine pack* workflow is its first real run; its smoke test is what proves the pack works. If the build step fails, open the failing step's log (the sherpa-onnx build script name or asset layout may differ between versions; the `sherpa_ref` input lets you pin a version).
 
 ## Using it
 
@@ -78,19 +79,20 @@ Building it, once, on any computer:
 
 ## Security & privacy
 
-- Everything runs on your site and in your browser; nothing is sent to third parties.
-- REST routes need a logged-in user, the REST nonce and `edit_post` for the post. Listing needs `edit_posts`; authors only see their own posts.
+- Everything runs on your site and in your browser; nothing is sent to third parties. The only outbound request is the optional engine download from GitHub, made by the server when an administrator presses the button.
+- REST routes need a logged-in user and the REST nonce. Post routes need `edit_post` for the post, listing needs `edit_posts` (authors only see their own posts), engine routes need `manage_options`.
+- Engine downloads: the manifest and file URLs must be `https` on an allow-listed host, file names must be one of five fixed names, sizes are capped, and every file is verified against the SHA-256 in the manifest before it is put in place. Only one download runs at a time.
 - Uploads are accepted only if the bytes are genuine WAV or MP3, within the size limit, and match the hash of the text that was generated (a post edited meanwhile is rejected with HTTP 409).
 - Private, password-protected and unpublished posts are never voiced, because the audio file URL is public.
 - The engine ZIP extractor only writes five allow-listed file names, ignores any path inside the archive and requires `manage_options`.
-- Uninstalling removes the settings and the cron event; generated audio stays in the Media Library.
+- Uninstalling removes the settings and the cron event; generated audio and engine files stay on disk.
 
 ## Known limitations
 
 - Quality is that of a single medium-size Piper voice: clear and natural, not studio-grade.
 - Generation speed depends on the editor's computer. Long posts take minutes.
 - Currency suffixes after an apostrophe are dropped (`₺100'ü` → "yüz lira").
-- WAV files are large (≈ 2.6 MB per minute). Add `lame.min.js` for MP3.
+- WAV files are large (≈ 2.6 MB per minute). The engine pack includes `lame.min.js` when it can be fetched, which switches to MP3.
 - Interface language: Turkish only.
 
 ## Development
@@ -100,10 +102,12 @@ sh tests/run.sh        # PHP lint, JS syntax, PHP tests, JS tests
 ```
 
 - `tests/` – PHP tests (WordPress functions stubbed in `tests/wp_stubs.php`) and JavaScript tests.
+- `tools/make-engine-manifest.py` – writes `engine-manifest.json`; `tools/engine-smoke.mjs` – headless-Chromium smoke test of an engine pack.
 - `.github/workflows/tests.yml` – lint and tests on PHP 8.4 / 8.5 and Node.
 - `.github/workflows/security.yml` – WordPress security sniffs, PHP 8.4 compatibility, Semgrep, CodeQL, Gitleaks (weekly + on every push/PR).
+- `.github/workflows/build-engine.yml` – builds, smoke-tests and publishes the engine pack (manual trigger).
 - `.github/workflows/release.yml` – push a `vX.Y.Z` tag to build the installable zip and publish a GitHub release. The tag must match the plugin header version, `YS_VERSION` and a `CHANGELOG.md` entry.
 
 ## License
 
-GPL-2.0-or-later. See [LICENSE](LICENSE). Voice models and the sherpa-onnx runtime have their own licenses; check them before commercial use.
+GPL-3.0-or-later. See [LICENSE](LICENSE). Voice models, the sherpa-onnx runtime and lamejs have their own licenses; check them before commercial use.

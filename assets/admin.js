@@ -9,7 +9,7 @@
 	var Y = window.YS || {};
 	var A = window.YSAudio;
 	var root = document.getElementById( 'ys-app' );
-	if ( ! root || ! A ) {
+	if ( ! root || ! A || ! window.YSEngine ) {
 		return;
 	}
 
@@ -194,55 +194,11 @@
 
 	var enginePromise = null;
 
-	function loadScript( src ) {
-		return new Promise( function ( resolve, reject ) {
-			var s = document.createElement( 'script' );
-			s.src = src;
-			s.async = false;
-			s.onload = resolve;
-			s.onerror = function () {
-				reject( new Error( 'Motor dosyası yüklenemedi: ' + src.split( '?' )[ 0 ].split( '/' ).pop() ) );
-			};
-			document.head.appendChild( s );
-		} );
-	}
-
 	function getEngine() {
-		if ( enginePromise ) {
-			return enginePromise;
+		if ( ! enginePromise ) {
+			enginePromise = window.YSEngine.load( { base: Y.engineUrl, ver: Y.ver, lame: Y.lame } );
+			enginePromise.catch( function () { enginePromise = null; } );
 		}
-		enginePromise = new Promise( function ( resolve, reject ) {
-			var base = Y.engineUrl, v = '?v=' + encodeURIComponent( Y.ver );
-			var timer = setTimeout( function () {
-				reject( new Error( 'Motor zaman aşımına uğradı (10 dk). Dosyaları ve bağlantınızı kontrol edin.' ) );
-			}, 600000 );
-			window.Module = {
-				locateFile: function ( p ) { return base + p + v; },
-				print: function () {},
-				printErr: function () {},
-				onRuntimeInitialized: function () {
-					clearTimeout( timer );
-					try {
-						resolve( window.createOfflineTts( window.Module ) );
-					} catch ( e ) {
-						reject( e );
-					}
-				}
-			};
-			var chain = loadScript( base + 'sherpa-onnx-tts.js' + v ).then( function () {
-				return loadScript( base + 'sherpa-onnx-wasm-main-tts.js' + v );
-			} );
-			if ( Y.lame ) {
-				chain = chain.then( function () {
-					return loadScript( base + 'lame.min.js' + v ).catch( function () {} );
-				} );
-			}
-			chain.catch( function ( e ) {
-				clearTimeout( timer );
-				reject( e );
-			} );
-		} );
-		enginePromise.catch( function () { enginePromise = null; } );
 		return enginePromise;
 	}
 

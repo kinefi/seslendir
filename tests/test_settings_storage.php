@@ -45,9 +45,9 @@ t( 'yalnızca kayıtlı türler', YS_Settings::post_types(), array( 'post' ) );
 t( 'eksik ayar varsayılanı alır', YS_Settings::get( 'confirm' ), 1 );
 
 // ---- Motor dosyaları ----
-t( 'zorunlu dosya sayısı', count( YS_Settings::engine_required() ), 4 );
+t( 'zorunlu dosya sayısı', count( YS_Settings::engine_required() ), 8 );
 t( 'lame isteğe bağlı', in_array( 'lame.min.js', YS_Settings::engine_optional(), true ), true );
-t( 'izinli adlar birleşik', count( YS_Settings::engine_allowed_names() ), 5 );
+t( 'izinli adlar birleşik', count( YS_Settings::engine_allowed_names() ), 9 );
 
 // ---- Ses biçimi doğrulama ----
 function wav_bytes( $seconds, $rate = 22050 ) {

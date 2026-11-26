@@ -45,10 +45,11 @@ Kaynak kod, sorunlar ve sürümler: <https://github.com/kinefi/yaziyi-seslendir>
 | `sherpa-onnx-tts.js` | evet | JavaScript API (`createOfflineTts`) |
 | `sherpa-onnx-wasm-main-tts.js` | evet | Emscripten yükleyicisi |
 | `sherpa-onnx-wasm-main-tts.wasm` | evet | Çalışma zamanı |
-| `sherpa-onnx-wasm-main-tts.data` | evet | Paketlenmiş model, `tokens.txt` ve `espeak-ng-data` |
+| `sherpa-onnx-wasm-main-tts.data` | evet | Paketlenmiş model ve `tokens.txt` |
+| `piper-phonemize.js`, `piper-phonemize-wasm-main.js/.wasm/.data` | evet | Türkçe metin → fonem (espeak-ng); Web Worker'da çalışır |
 | `lame.min.js` | hayır | [lamejs](https://github.com/zhuker/lamejs) (LGPL); varsa ses WAV yerine küçük MP3 olarak kaydedilir |
 
-Başka bir sunucu ya da farklı bir ses için `YS_ENGINE_MANIFEST_URL` sabitini (ya da `ys_engine_manifest_url` filtresini) ayarlayın; sunucu GitHub ya da Hugging Face değilse `ys_engine_allowed_hosts` filtresiyle ekleyin. Manifest dosyaları `https` olmalı, yalnızca yukarıdaki beş dosya adını içermeli ve her dosya için SHA-256 taşımalıdır.
+Başka bir sunucu ya da farklı bir ses için `YS_ENGINE_MANIFEST_URL` sabitini (ya da `ys_engine_manifest_url` filtresini) ayarlayın; sunucu GitHub ya da Hugging Face değilse `ys_engine_allowed_hosts` filtresiyle ekleyin. Manifest dosyaları `https` olmalı, yalnızca yukarıdaki dokuz dosya adını içermeli ve her dosya için SHA-256 taşımalıdır.
 
 > **Durum notu:** PHP, normalleştirici, depolama, indirme ve arayüz kodu otomatik testlerle sınanmıştır. WebAssembly motorunun kendisi bu sürümün hazırlandığı ortamda derlenemedi; yani *Build engine pack* iş akışı onun ilk gerçek çalıştırmasıdır ve paketin çalıştığını duman testi kanıtlar. Derleme adımı hata verirse o adımın günlüğünü açın (sherpa-onnx betik adı ya da varlık düzeni sürümler arasında değişebilir; `sherpa_ref` girdisiyle bir sürümü sabitleyebilirsiniz).
 
@@ -81,10 +82,10 @@ Başka bir sunucu ya da farklı bir ses için `YS_ENGINE_MANIFEST_URL` sabitini 
 
 - Her şey sitenizde ve tarayıcınızda çalışır; üçüncü taraflara hiçbir şey gönderilmez. Tek dışarı istek, yönetici düğmeye bastığında sunucunun yaptığı isteğe bağlı motor indirmesidir (GitHub).
 - REST uç noktaları oturum açmış kullanıcı ve REST nonce'u ister. Yazı uç noktaları ilgili yazı için `edit_post`, listeleme `edit_posts` (yazarlar yalnızca kendi yazılarını görür), motor uç noktaları `manage_options` ister.
-- Motor indirmesi: manifest ve dosya adresleri `https` ve izinli bir sunucuda olmalı, dosya adları beş sabit addan biri olmalı, boyutlar sınırlıdır ve her dosya yerine konmadan önce manifestteki SHA-256 ile doğrulanır. Aynı anda yalnızca tek indirme çalışır.
+- Motor indirmesi: manifest ve dosya adresleri `https` ve izinli bir sunucuda olmalı, dosya adları dokuz sabit addan biri olmalı, boyutlar sınırlıdır ve her dosya yerine konmadan önce manifestteki SHA-256 ile doğrulanır. Aynı anda yalnızca tek indirme çalışır.
 - Yükleme yalnızca gerçekten WAV/MP3 olan, boyut sınırı içindeki ve üretilen metnin özetiyle (hash) eşleşen veriyi kabul eder; arada değişen yazı HTTP 409 ile reddedilir.
 - Özel, şifreli ve yayımlanmamış yazılar seslendirilmez; çünkü ses dosyasının adresi herkese açıktır.
-- Motor ZIP'i yalnızca beş izinli dosya adını yazar, arşivdeki tüm yol bilgisini yok sayar ve `manage_options` yetkisi ister.
+- Motor ZIP'i yalnızca dokuz izinli dosya adını yazar, arşivdeki tüm yol bilgisini yok sayar ve `manage_options` yetkisi ister.
 - Eklenti silinince ayarlar ve cron olayı kaldırılır; üretilmiş sesler ve motor dosyaları diskte kalır.
 
 ## Bilinen sınırlar

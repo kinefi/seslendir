@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1] - 2026-11-26
+### Fixed
+- **`Build engine pack` failed at the CMake step** ("No text frontend found"). Current sherpa-onnx no longer uses the voice's `espeak-ng-data`; text must be phonemized separately. The workflow now fetches the `piper-phonemize` WebAssembly bundle (SHA-256 pinned), stages only `model.onnx` and `tokens.txt`, and adds the four `piper-phonemize*` files to the pack.
+### Changed
+- The engine loader phonemizes Turkish text with espeak-ng (`tr`) in a Web Worker (`assets/ys-phonemize-worker.js`) and passes the phoneme codes to sherpa-onnx (`generateWithConfig`). `engine.generate()` is now asynchronous.
+- The pack, manifest, ZIP installer and allow-list now cover nine file names (was five).
+
 ## [1.1.0] - 2026-11-25
 ### Added
 - **Automatic engine download.** **Yazıyı Seslendir → Kurulum → Otomatik indir ve kur** fetches the speech engine pack from the project's GitHub release (`engine-1`). It downloads in 6 MB HTTP Range chunks driven by a progress bar (works within shared-hosting time limits), resumes interrupted downloads, verifies every file against the SHA-256 in `engine-manifest.json`, and runs one download at a time. The manifest and file URLs must be `https` on an allow-listed host and may only name the five known engine files.

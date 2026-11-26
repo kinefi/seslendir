@@ -196,7 +196,7 @@
 
 	function getEngine() {
 		if ( ! enginePromise ) {
-			enginePromise = window.YSEngine.load( { base: Y.engineUrl, ver: Y.ver, lame: Y.lame } );
+			enginePromise = window.YSEngine.load( { base: Y.engineUrl, worker: Y.workerUrl, ver: Y.ver, lame: Y.lame } );
 			enginePromise.catch( function () { enginePromise = null; } );
 		}
 		return enginePromise;
@@ -213,7 +213,7 @@
 			if ( cancelled ) {
 				throw new Error( 'cancelled' );
 			}
-			var audio = tts.generate( { text: chunks[ i ].t, sid: sid, speed: speed } );
+			var audio = await tts.generate( { text: chunks[ i ].t, sid: sid, speed: speed } );
 			if ( audio && audio.samples && audio.samples.length ) {
 				sr = audio.sampleRate || sr;
 				parts.push( A.floatToInt16( audio.samples ) );

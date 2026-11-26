@@ -52,8 +52,8 @@ t( 'yerel dosya reddedilir', YS_Engine::host_allowed( 'file:///etc/passwd' ), fa
 // ---- Manifest ----
 $ok = YS_Engine::validate_manifest( good_manifest() );
 t( 'geçerli manifest', $ok['ok'] );
-t( 'dosya sayısı', count( $ok['files'] ), 4 );
-t( 'toplam boyut', $ok['total'], 4000 );
+t( 'dosya sayısı', count( $ok['files'] ), 8 );
+t( 'toplam boyut', $ok['total'], 8000 );
 t( 'ses adı', $ok['voice'], 'tr_TR-fettah-medium' );
 
 $m          = good_manifest();
@@ -207,7 +207,7 @@ if ( '' === $py ) {
 	$data = json_decode( (string) @file_get_contents( $tmp . '/engine-manifest.json' ), true );
 	$res  = YS_Engine::validate_manifest( $data );
 	t( 'betik çıktısı PHP doğrulayıcıdan geçer', $res['ok'], true );
-	t( 'betik: 5 dosya (gereksiz yok sayıldı)', count( $res['files'] ), 5 );
+	t( 'betik: 9 dosya (gereksiz yok sayıldı)', count( $res['files'] ), 9 );
 	$sha_ok = true;
 	foreach ( $res['files'] as $f ) {
 		if ( hash_file( 'sha256', $tmp . '/' . $f['name'] ) !== $f['sha256'] || filesize( $tmp . '/' . $f['name'] ) !== $f['size'] ) {

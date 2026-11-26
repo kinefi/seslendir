@@ -108,6 +108,10 @@ class YS_Settings {
 			'sherpa-onnx-wasm-main-tts.js',
 			'sherpa-onnx-wasm-main-tts.wasm',
 			'sherpa-onnx-wasm-main-tts.data',
+			'piper-phonemize.js',
+			'piper-phonemize-wasm-main.js',
+			'piper-phonemize-wasm-main.wasm',
+			'piper-phonemize-wasm-main.data',
 		);
 	}
 

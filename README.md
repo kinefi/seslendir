@@ -45,10 +45,11 @@ Until the workflow has run once, the Kurulum tab says the pack is not published 
 | `sherpa-onnx-tts.js` | yes | JavaScript API (`createOfflineTts`) |
 | `sherpa-onnx-wasm-main-tts.js` | yes | Emscripten loader |
 | `sherpa-onnx-wasm-main-tts.wasm` | yes | Runtime |
-| `sherpa-onnx-wasm-main-tts.data` | yes | Packed model, tokens and `espeak-ng-data` |
+| `sherpa-onnx-wasm-main-tts.data` | yes | Packed model and tokens |
+| `piper-phonemize.js`, `piper-phonemize-wasm-main.js/.wasm/.data` | yes | Turkish text → phonemes (espeak-ng), run in a Web Worker |
 | `lame.min.js` | no | [lamejs](https://github.com/zhuker/lamejs) (LGPL); when present audio is saved as small MP3 files instead of WAV |
 
-Other hosts or a different voice: set the `YS_ENGINE_MANIFEST_URL` constant (or the `ys_engine_manifest_url` filter) and, if the host is not GitHub or Hugging Face, add it with the `ys_engine_allowed_hosts` filter. Manifest files must be `https`, list only the five file names above, and carry a SHA-256 for each file.
+Other hosts or a different voice: set the `YS_ENGINE_MANIFEST_URL` constant (or the `ys_engine_manifest_url` filter) and, if the host is not GitHub or Hugging Face, add it with the `ys_engine_allowed_hosts` filter. Manifest files must be `https`, list only the nine file names above, and carry a SHA-256 for each file.
 
 > **Status note:** the PHP, normalizer, storage, download and UI code is covered by automated tests. The WebAssembly engine itself could not be built in the environment where this release was authored, so the *Build engine pack* workflow is its first real run; its smoke test is what proves the pack works. If the build step fails, open the failing step's log (the sherpa-onnx build script name or asset layout may differ between versions; the `sherpa_ref` input lets you pin a version).
 
@@ -81,10 +82,10 @@ Other hosts or a different voice: set the `YS_ENGINE_MANIFEST_URL` constant (or 
 
 - Everything runs on your site and in your browser; nothing is sent to third parties. The only outbound request is the optional engine download from GitHub, made by the server when an administrator presses the button.
 - REST routes need a logged-in user and the REST nonce. Post routes need `edit_post` for the post, listing needs `edit_posts` (authors only see their own posts), engine routes need `manage_options`.
-- Engine downloads: the manifest and file URLs must be `https` on an allow-listed host, file names must be one of five fixed names, sizes are capped, and every file is verified against the SHA-256 in the manifest before it is put in place. Only one download runs at a time.
+- Engine downloads: the manifest and file URLs must be `https` on an allow-listed host, file names must be one of nine fixed names, sizes are capped, and every file is verified against the SHA-256 in the manifest before it is put in place. Only one download runs at a time.
 - Uploads are accepted only if the bytes are genuine WAV or MP3, within the size limit, and match the hash of the text that was generated (a post edited meanwhile is rejected with HTTP 409).
 - Private, password-protected and unpublished posts are never voiced, because the audio file URL is public.
-- The engine ZIP extractor only writes five allow-listed file names, ignores any path inside the archive and requires `manage_options`.
+- The engine ZIP extractor only writes nine allow-listed file names, ignores any path inside the archive and requires `manage_options`.
 - Uninstalling removes the settings and the cron event; generated audio and engine files stay on disk.
 
 ## Known limitations

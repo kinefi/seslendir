@@ -82,6 +82,7 @@ class YS_Admin {
 				'rest'        => esc_url_raw( rest_url( YS_REST::NS . '/' ) ),
 				'nonce'       => wp_create_nonce( 'wp_rest' ),
 				'engineUrl'   => esc_url_raw( YS_Settings::engine_url() ),
+				'workerUrl'   => esc_url_raw( YS_URL . 'assets/ys-phonemize-worker.js' ),
 				'engineReady' => (bool) $status['ready'],
 				'lame'        => (bool) $status['lame'],
 				'maxBytes'    => (int) YS_Settings::max_bytes(),

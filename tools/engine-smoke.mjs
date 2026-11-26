@@ -15,6 +15,7 @@ function resolveFile( url ) {
 	const p = decodeURIComponent( url.split( '?' )[ 0 ] );
 	if ( p === '/smoke.html' ) return path.join( here, 'smoke.html' );
 	if ( p === '/assets/ys-engine.js' ) return path.join( here, '..', 'assets', 'ys-engine.js' );
+	if ( p === '/assets/ys-phonemize-worker.js' ) return path.join( here, '..', 'assets', 'ys-phonemize-worker.js' );
 	if ( p.startsWith( '/engine/' ) ) {
 		const f = path.join( engineDir, path.basename( p ) );
 		return f;

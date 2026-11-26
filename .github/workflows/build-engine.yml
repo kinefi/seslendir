@@ -23,7 +23,7 @@ on:
         default: 'latest'
         required: true
       voice_repo:
-        description: 'Hugging Face ses deposu (Piper/VITS biçimi: .onnx, tokens.txt, espeak-ng-data/)'
+        description: 'Hugging Face ses deposu (Piper/VITS biçimi: .onnx ve tokens.txt)'
         default: 'csukuangfj/vits-piper-tr_TR-fettah-medium'
         required: true
 
@@ -66,7 +66,6 @@ jobs:
           git lfs install
           git clone --depth 1 "https://huggingface.co/${VOICE_REPO}" voice
           ls -la voice
-          test -d voice/espeak-ng-data || { echo "::error::Ses deposunda espeak-ng-data/ yok. sherpa-onnx biçiminde bir Piper deposu gerekir."; exit 1; }
           test -f voice/tokens.txt || { echo "::error::Ses deposunda tokens.txt yok."; exit 1; }
 
       - name: Stage the voice as the WebAssembly TTS assets
@@ -78,11 +77,22 @@ jobs:
           echo "model: $MODEL"
           cp "$MODEL" "$ASSETS/model.onnx"
           cp voice/tokens.txt "$ASSETS/tokens.txt"
-          cp -r voice/espeak-ng-data "$ASSETS/espeak-ng-data"
           ls -la "$ASSETS"
           if ! grep -q "model.onnx" sherpa-onnx/wasm/tts/sherpa-onnx-tts.js; then
             echo "::warning::sherpa-onnx-tts.js varsayılan yapılandırması model.onnx'i göstermiyor olabilir; duman testi bunu yakalar."
           fi
+
+      - name: Get the piper-phonemize WebAssembly bundle (text frontend)
+        run: |
+          # Güncel sherpa-onnx metni kendisi fonemleştirmez; derleme bu paketin varlığını ister.
+          # Eklenti de bu paketi tarayıcıda çalıştırır (assets/ys-phonemize-worker.js).
+          cd sherpa-onnx/wasm/tts
+          curl -fsSL -o pp.zip https://github.com/csukuangfj/piper-phonemize/releases/download/wasm/piper-phonemize-v1.6.1-wasm-browser.zip
+          echo "31851c373df9761fb1eb3f000abf939e1eec7e63b1821ca6a0c4b3902c7b9e46  pp.zip" | sha256sum -c -
+          unzip -q pp.zip
+          mv browser piper-phonemize
+          rm pp.zip
+          ls -la piper-phonemize
 
       - name: Build the WebAssembly TTS
         run: |
@@ -99,6 +109,10 @@ jobs:
             if [ -z "$SRC" ] && [ "$f" = "sherpa-onnx-tts.js" ]; then SRC="sherpa-onnx/wasm/tts/sherpa-onnx-tts.js"; fi
             test -n "$SRC" -a -f "$SRC" || { echo "::error::Derleme çıktısında $f bulunamadı."; exit 1; }
             cp "$SRC" "dist/$f"
+          done
+          for f in piper-phonemize.js piper-phonemize-wasm-main.js piper-phonemize-wasm-main.wasm piper-phonemize-wasm-main.data; do
+            test -f "sherpa-onnx/wasm/tts/piper-phonemize/$f" || { echo "::error::Fonemleştirici paketinde $f yok."; exit 1; }
+            cp "sherpa-onnx/wasm/tts/piper-phonemize/$f" "dist/$f"
           done
           ls -la dist
 
@@ -119,7 +133,7 @@ jobs:
       - name: Manifest and manual-install zip
         run: |
           python3 tools/make-engine-manifest.py dist "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" --voice "$(basename "$VOICE_REPO")"
-          (cd dist && zip -q ../yaziyi-seslendir-motor.zip sherpa-onnx-* $(ls lame.min.js 2>/dev/null))
+          (cd dist && zip -q ../yaziyi-seslendir-motor.zip sherpa-onnx-* piper-phonemize* $(ls lame.min.js 2>/dev/null))
           mv yaziyi-seslendir-motor.zip dist/
           ls -la dist
           cat dist/engine-manifest.json

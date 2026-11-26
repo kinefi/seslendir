@@ -5,8 +5,13 @@
 <script>
 // Eklentideki yükleme koduyla (assets/ys-engine.js) motoru yükler ve Türkçe bir cümle seslendirir.
 window.__smoke = null;
-YSEngine.load( { base: '/engine/', ver: 'smoke', lame: false, timeout: 240000 } ).then( function ( tts ) {
-	var audio = tts.generate( { text: 'Merhaba dünya. Bugün hava çok güzel.', sid: 0, speed: 1 } );
+YSEngine.load( { base: '/engine/', worker: '/assets/ys-phonemize-worker.js', ver: 'smoke', lame: false, timeout: 240000 } ).then( function ( tts ) {
+	return tts.generate( { text: 'Merhaba dünya. Bugün hava çok güzel.', sid: 0, speed: 1 } ).then( function ( audio ) {
+	return { tts: tts, audio: audio };
+	} );
+} ).then( function ( r ) {
+	var tts = r.tts;
+	var audio = r.audio;
 	var peak = 0;
 	for ( var i = 0; i < audio.samples.length; i++ ) {
 		peak = Math.max( peak, Math.abs( audio.samples[ i ] ) );

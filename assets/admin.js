@@ -522,11 +522,12 @@
 	render();
 	load();
 
-	if ( Y.startId && Y.engineReady ) {
+	var startId = parseInt( Y.startId, 10 ) || 0; // wp_localize_script sayıları metne çevirir: "0" doğru sayılır.
+	if ( startId > 0 && Y.engineReady ) {
 		if ( window.history && history.replaceState ) {
 			history.replaceState( null, '', window.location.href.replace( /([?&])ys_start=\d+&?/, '$1' ).replace( /[?&]$/, '' ) );
 		}
-		api( 'GET', 'post/' + Y.startId + '/text' ).then( function ( d ) {
+		api( 'GET', 'post/' + startId + '/text' ).then( function ( d ) {
 			run( [ { id: d.id, title: d.title } ], 'save' );
 		}, function ( e ) { window.alert( e.message ); } );
 	}

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.1] - 2026-11-26
+### Fixed
+- Seslendir page showed "Ne yazık ki, bunu yapma izniniz yok. [GET post/0/text → 403]" on every load: `wp_localize_script` turns the integer `startId` 0 into the string `"0"`, which is truthy in JavaScript, so the auto-start request ran with post ID 0. The value is now parsed as a number and only positive IDs start a run.
+
 ## [1.4.0] - 2026-11-26
 ### Added
 - **Model selection in Ayarlar**: the supported models (`piper-sherpa`, `piper-ort`, `okur`) are listed with size, description and licence. Kurulum downloads only the selected model, into `seslendir-motor/<model>/`; downloads of other models are kept. Packs from older versions are migrated automatically.

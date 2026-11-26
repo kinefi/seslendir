@@ -2,7 +2,7 @@
 """engine-manifest.json üretir (eklentinin otomatik indirmesi bunu okur).
 
 Kullanım:
-  python3 tools/make-engine-manifest.py <dosya-klasörü> <taban-url> [--engine sherpa|piper-ort] [--voice AD] [--out YOL]
+  python3 tools/make-engine-manifest.py <dosya-klasörü> <taban-url> [--engine sherpa|piper-ort|okur] [--voice AD] [--out YOL]
 
 Yalnızca eklentinin izin verdiği dosya adları işlenir. Zorunlu dosyalardan biri
 yoksa hata verir. Boyut ve SHA-256 değerleri dosyalardan hesaplanır.
@@ -26,6 +26,16 @@ REQUIRED_ORT = [
     "voice.onnx",
     "voice.onnx.json",
 ] + PHONEMIZE
+REQUIRED_OKUR = [
+    "ort.wasm.min.js",
+    "ort-wasm-simd-threaded.js",
+    "ort-wasm-simd-threaded.wasm",
+    "okur-config.json",
+    "okur-frontend.wasm",
+    "okur-text.onnx",
+    "okur-sample.onnx",
+    "okur-decoder.onnx",
+]
 REQUIRED = [
     "sherpa-onnx-tts.js",
     "sherpa-onnx-wasm-main-tts.js",
@@ -44,7 +54,7 @@ def sha256(path):
 
 
 def build(directory, base_url, voice, kind="sherpa"):
-    required = REQUIRED_ORT if kind == "piper-ort" else REQUIRED
+    required = {"piper-ort": REQUIRED_ORT, "okur": REQUIRED_OKUR}.get(kind, REQUIRED)
     base_url = base_url.rstrip("/") + "/"
     files = []
     for name in required + OPTIONAL:
@@ -65,7 +75,7 @@ def main(argv):
     ap.add_argument("directory")
     ap.add_argument("base_url")
     ap.add_argument("--voice", default="tr_TR-fettah-medium")
-    ap.add_argument("--engine", default="sherpa", choices=["sherpa", "piper-ort"])
+    ap.add_argument("--engine", default="sherpa", choices=["sherpa", "piper-ort", "okur"])
     ap.add_argument("--out", default=None)
     a = ap.parse_args(argv)
     manifest = build(a.directory, a.base_url, a.voice, a.engine)

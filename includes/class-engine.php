@@ -23,6 +23,7 @@ class YS_Engine {
 
 	const MANIFEST_DEFAULT     = 'https://github.com/kinefi/yaziyi-seslendir/releases/download/engine-1/engine-manifest.json';
 	const MANIFEST_DEFAULT_ORT = 'https://github.com/kinefi/yaziyi-seslendir/releases/download/engine-2/engine-manifest.json';
+	const MANIFEST_DEFAULT_OKUR = 'https://github.com/kinefi/yaziyi-seslendir/releases/download/engine-3/engine-manifest.json';
 
 	public static function init() {
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
@@ -82,8 +83,20 @@ class YS_Engine {
 		return in_array( strtolower( $p['host'] ), self::allowed_hosts(), true );
 	}
 
+	/** Etkin motor türünün varsayılan manifest adresi. */
+	private static function default_manifest() {
+		switch ( YS_Settings::engine_kind() ) {
+			case 'okur':
+				return self::MANIFEST_DEFAULT_OKUR;
+			case 'piper-ort':
+				return self::MANIFEST_DEFAULT_ORT;
+			default:
+				return self::MANIFEST_DEFAULT;
+		}
+	}
+
 	public static function manifest_url(): string {
-		$url = defined( 'YS_ENGINE_MANIFEST_URL' ) ? (string) constant( 'YS_ENGINE_MANIFEST_URL' ) : ( 'piper-ort' === YS_Settings::engine_kind() ? self::MANIFEST_DEFAULT_ORT : self::MANIFEST_DEFAULT );
+		$url = defined( 'YS_ENGINE_MANIFEST_URL' ) ? (string) constant( 'YS_ENGINE_MANIFEST_URL' ) : self::default_manifest();
 		return (string) apply_filters( 'ys_engine_manifest_url', $url );
 	}
 

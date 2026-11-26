@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0] - 2026-11-26
+### Added
+- **Third engine kind, `okur`**: [Okur TTS](https://github.com/ahmethakanbesel/okur-tts), a small Turkish model (one voice, 48 kHz) run with ONNX Runtime Web. Its text frontend is compiled from Rust to WebAssembly in CI. New workflow `Build engine pack (Okur)` (`build-engine-okur.yml`, release `engine-3`) collects the pack and smoke-tests it in headless Chromium before publishing. Select it with `define( 'YS_ENGINE_KIND', 'okur' );`.
+- `assets/ys-okur.js` (JavaScript port of Okur's chunking, noise and timeline helpers, unit-tested), engine-kind tests for `okur`.
+- Attribution note in the Kurulum tab when `okur` is selected (the weights are CC BY 4.0).
+### Notes
+- `sherpa` stays the default. The Okur path has not been run against the real model outside CI.
+
 ## [1.2.0] - 2026-11-26
 ### Added
 - **Second engine kind, `piper-ort`** (ONNX Runtime Web + the Piper `tr_TR-fettah-medium` model run directly, with `piper-phonemize` for the text front end). No C++/Emscripten build is needed: the new `Build engine pack (ONNX Runtime)` workflow (`build-engine-ort.yml`) only collects prebuilt files (onnxruntime-web from npm, the voice from the `csukuangfj/vits-piper-tr_TR-fettah-medium` Hugging Face repo, the phonemizer bundle), smoke-tests them in headless Chromium and publishes release `engine-2`.

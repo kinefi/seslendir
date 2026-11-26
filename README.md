@@ -53,6 +53,16 @@ Other hosts or a different voice: set the `YS_ENGINE_MANIFEST_URL` constant (or 
 
 > **Status note:** the PHP, normalizer, storage, download and UI code is covered by automated tests. The WebAssembly engine itself could not be built in the environment where this release was authored, so the *Build engine pack* workflow is its first real run; its smoke test is what proves the pack works. If the build step fails, open the failing step's log (the sherpa-onnx build script name or asset layout may differ between versions; the `sherpa_ref` input lets you pin a version).
 
+### Okur TTS (`okur`)
+
+[Okur](https://github.com/ahmethakanbesel/okur-tts) is a small open Turkish model (one voice, 48 kHz). To use it:
+
+1. Run **Actions → Build engine pack (Okur) → Run workflow** once (publishes release `engine-3`; the Rust text frontend is compiled there).
+2. Add `define( 'YS_ENGINE_KIND', 'okur' );` to `wp-config.php`.
+3. Use **Kurulum → Otomatik indir ve kur**.
+
+Licences: Okur's code is Apache-2.0; its weights are **CC BY 4.0**, so attribution is required: "okur" (Ahmet Hakan Beşel) and the training corpora Mozilla Common Voice (CC0), ISSAI Turkish Speech Corpus (MIT), MediaSpeech (CC BY 4.0) and Google FLEURS (CC BY 4.0). See the project's NOTICE. The model card asks not to use the voice to impersonate a real person or pass it off as human.
+
 ### Alternative engine: ONNX Runtime (`piper-ort`)
 
 Building sherpa-onnx for WebAssembly is the most fragile part of the setup. As an alternative, the plugin can run the Piper model directly with ONNX Runtime Web (no compilation at all):

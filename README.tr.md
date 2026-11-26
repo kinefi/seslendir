@@ -53,6 +53,16 @@ Başka bir sunucu ya da farklı bir ses için `YS_ENGINE_MANIFEST_URL` sabitini 
 
 > **Durum notu:** PHP, normalleştirici, depolama, indirme ve arayüz kodu otomatik testlerle sınanmıştır. WebAssembly motorunun kendisi bu sürümün hazırlandığı ortamda derlenemedi; yani *Build engine pack* iş akışı onun ilk gerçek çalıştırmasıdır ve paketin çalıştığını duman testi kanıtlar. Derleme adımı hata verirse o adımın günlüğünü açın (sherpa-onnx betik adı ya da varlık düzeni sürümler arasında değişebilir; `sherpa_ref` girdisiyle bir sürümü sabitleyebilirsiniz).
 
+### Okur TTS (`okur`)
+
+[Okur](https://github.com/ahmethakanbesel/okur-tts), küçük ve açık bir Türkçe modeldir (tek ses, 48 kHz). Kullanmak için:
+
+1. Bir kez **Actions → Build engine pack (Okur) → Run workflow** çalıştırın (`engine-3` sürümünü yayımlar; Rust metin ön yüzü orada derlenir).
+2. `wp-config.php` dosyasına `define( 'YS_ENGINE_KIND', 'okur' );` ekleyin.
+3. **Kurulum → Otomatik indir ve kur** düğmesini kullanın.
+
+Lisanslar: Okur'un kodu Apache-2.0, ağırlıkları **CC BY 4.0**'dır; bu yüzden atıf gerekir: "okur" (Ahmet Hakan Beşel) ve eğitim derlemleri Mozilla Common Voice (CC0), ISSAI Turkish Speech Corpus (MIT), MediaSpeech (CC BY 4.0), Google FLEURS (CC BY 4.0). Projenin NOTICE dosyasına bakın. Model kartı, sesin gerçek bir kişiyi taklit etmek ya da insan sesi gibi sunmak için kullanılmamasını ister.
+
 ### Alternatif motor: ONNX Runtime (`piper-ort`)
 
 sherpa-onnx'i WebAssembly için derlemek kurulumun en kırılgan kısmıdır. Alternatif olarak eklenti, Piper modelini ONNX Runtime Web ile doğrudan çalıştırabilir (hiç derleme yok):

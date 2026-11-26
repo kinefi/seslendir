@@ -72,7 +72,8 @@ class YS_Admin {
 		$status = YS_Settings::engine_status();
 		wp_enqueue_script( 'ys-audio', YS_URL . 'assets/ys-audio.js', array(), YS_VERSION, true );
 		wp_enqueue_script( 'ys-piper', YS_URL . 'assets/ys-piper.js', array(), YS_VERSION, true );
-		wp_enqueue_script( 'ys-engine', YS_URL . 'assets/ys-engine.js', array( 'ys-piper' ), YS_VERSION, true );
+		wp_enqueue_script( 'ys-okur', YS_URL . 'assets/ys-okur.js', array(), YS_VERSION, true );
+		wp_enqueue_script( 'ys-engine', YS_URL . 'assets/ys-engine.js', array( 'ys-piper', 'ys-okur' ), YS_VERSION, true );
 		wp_enqueue_script( 'ys-admin', YS_URL . 'assets/admin.js', array( 'ys-audio', 'ys-engine' ), YS_VERSION, true );
 
 		$start = isset( $_GET['ys_start'] ) ? absint( $_GET['ys_start'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- yalnızca otomatik açılacak yazıyı belirtir; işlem REST nonce'u ile yapılır.
@@ -157,6 +158,9 @@ class YS_Admin {
 
 		echo '<div class="ys-card"><h3>Otomatik kurulum (önerilen)</h3>';
 		echo '<p>Motor paketini (Türkçe ses modeli dahil, yaklaşık 70–100 MB) projenin GitHub sürümünden indirir. İndirme küçük parçalarla yapılır, paylaşımlı hostinglerde de çalışır ve her dosya SHA-256 ile doğrulanır. Sayfayı kapatırsanız kaldığı yerden devam eder.</p>';
+		if ( 'okur' === YS_Settings::engine_kind() ) {
+			echo '<p class="description">Ses: <a href="https://huggingface.co/ahakan/okur-tts" target="_blank" rel="noopener noreferrer">okur</a> (Ahmet Hakan Beşel). Kod Apache-2.0, ağırlıklar CC BY 4.0. Eğitim verisi: Mozilla Common Voice (CC0), ISSAI Turkish Speech Corpus (MIT), MediaSpeech (CC BY 4.0), Google FLEURS (CC BY 4.0).</p>';
+		}
 		echo '<div id="ys-setup-auto"><noscript>Bu bölüm JavaScript gerektirir.</noscript></div></div>';
 
 		echo '<h3>Dosya durumu</h3>';

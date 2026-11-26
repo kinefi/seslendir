@@ -79,5 +79,20 @@ $r = YS_Engine::validate_manifest( $m );
 t( 'izinsiz ad reddedilir', $r['ok'], false );
 t( 'hata mesajı dosya adını söyler', false !== strpos( $r['error'], 'ort.wasm.min.js' ) );
 
+// okur.
+$GLOBALS['ys_test_filters']['ys_engine_kind'] = 'okur';
+t( 'okur türü', YS_Settings::engine_kind(), 'okur' );
+$req = YS_Settings::engine_required();
+foreach ( array( 'okur-frontend.wasm', 'okur-text.onnx', 'okur-sample.onnx', 'okur-decoder.onnx', 'okur-config.json', 'ort.wasm.min.js' ) as $f ) {
+	t( "okur: $f zorunlu", in_array( $f, $req, true ) );
+}
+t( 'okur: fonemleştirici gerekmez', in_array( 'piper-phonemize.js', $req, true ), false );
+t( 'okur: dosya sayısı', count( $req ), 8 );
+t( 'okur: varsayılan manifest engine-3', false !== strpos( YS_Engine::manifest_url(), '/engine-3/' ) );
+t( 'okur manifesti geçerli', YS_Engine::validate_manifest( manifest_for( 'okur' ) )['ok'] );
+t( 'okur iken piper-ort manifesti reddedilir', YS_Engine::validate_manifest( manifest_for( 'piper-ort' ) )['ok'], false );
+$GLOBALS['ys_test_filters']['ys_engine_kind'] = 'sherpa';
+t( 'sherpa iken okur manifesti reddedilir', YS_Engine::validate_manifest( manifest_for( 'okur' ) )['ok'], false );
+
 echo $fail ? "$fail / $n FAILED\n" : "OK ($n assertions): " . basename( __FILE__ ) . "\n";
 exit( $fail ? 1 : 0 );

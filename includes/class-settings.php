@@ -102,10 +102,11 @@ class YS_Settings {
 	/* ---------- Ses motoru dosyaları ---------- */
 
 	/** Desteklenen motor türleri. */
-	const ENGINE_KINDS = array( 'sherpa', 'piper-ort' );
+	const ENGINE_KINDS = array( 'sherpa', 'piper-ort', 'okur' );
 
 	/**
-	 * Etkin motor türü: "sherpa" (sherpa-onnx WASM) ya da "piper-ort" (ONNX Runtime Web + Piper).
+	 * Etkin motor türü: "sherpa" (sherpa-onnx WASM), "piper-ort" (ONNX Runtime Web + Piper) ya da
+	 * "okur" (ONNX Runtime Web + Okur TTS).
 	 * wp-config.php içinde YS_ENGINE_KIND ile ya da ys_engine_kind süzgeciyle değiştirilir.
 	 */
 	public static function engine_kind() {
@@ -123,6 +124,19 @@ class YS_Settings {
 			'piper-phonemize-wasm-main.wasm',
 			'piper-phonemize-wasm-main.data',
 		);
+		if ( 'okur' === $kind ) {
+			// Okur TTS: fonemleştirici gerekmez; metin Okur'un kendi Rust/WASM ön yüzünden geçer.
+			return array(
+				'ort.wasm.min.js',
+				'ort-wasm-simd-threaded.js',
+				'ort-wasm-simd-threaded.wasm',
+				'okur-config.json',
+				'okur-frontend.wasm',
+				'okur-text.onnx',
+				'okur-sample.onnx',
+				'okur-decoder.onnx',
+			);
+		}
 		if ( 'piper-ort' === $kind ) {
 			return array_merge(
 				array(

@@ -71,7 +71,7 @@
 						if ( r.status === 413 && ! ( data && data.message ) ) {
 							msg = 'Ses dosyası sunucunun yükleme sınırını aşıyor. Ayarlardan sınırı kontrol edin ya da MP3 kodlayıcıyı (lame.min.js) ekleyin.';
 						}
-						throw new Error( msg );
+						throw new Error( msg + ' [' + method + ' ' + path + ' → ' + r.status + ']' );
 					}
 					return data;
 				} );

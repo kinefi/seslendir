@@ -32,8 +32,8 @@ jobs:
       - name: Verify tag matches the plugin version
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          HEADER_VER="$(grep -m1 -E '^\s*\*\s*Version:' yaziyi-seslendir.php | sed -E 's/.*Version:\s*//; s/\s+$//')"
-          CONST_VER="$(grep -m1 "define( 'YS_VERSION'" yaziyi-seslendir.php | sed -E "s/.*'YS_VERSION', '([^']+)'.*/\1/")"
+          HEADER_VER="$(grep -m1 -E '^\s*\*\s*Version:' seslendir.php | sed -E 's/.*Version:\s*//; s/\s+$//')"
+          CONST_VER="$(grep -m1 "define( 'YS_VERSION'" seslendir.php | sed -E "s/.*'YS_VERSION', '([^']+)'.*/\1/")"
           echo "tag=$TAG header=$HEADER_VER constant=$CONST_VER"
           if [ "$TAG" != "$HEADER_VER" ] || [ "$TAG" != "$CONST_VER" ]; then
             echo "::error::Tag v$TAG does not match the plugin header ($HEADER_VER) / YS_VERSION ($CONST_VER)."
@@ -48,11 +48,11 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           # Whitelist: yalnızca çalışma zamanında gerekenler (+ belgeler). Depoya eklenen yeni dosyalar ZIP'e girmez.
-          mkdir -p build/yaziyi-seslendir
-          cp yaziyi-seslendir.php uninstall.php LICENSE README.md README.tr.md CHANGELOG.md build/yaziyi-seslendir/
-          cp -r includes assets build/yaziyi-seslendir/
-          (cd build && zip -r "../yaziyi-seslendir-${VERSION}.zip" yaziyi-seslendir)
-          unzip -l "yaziyi-seslendir-${VERSION}.zip" | tail -n 20
+          mkdir -p build/seslendir
+          cp seslendir.php uninstall.php LICENSE README.md README.tr.md CHANGELOG.md build/seslendir/
+          cp -r includes assets build/seslendir/
+          (cd build && zip -r "../seslendir-${VERSION}.zip" seslendir)
+          unzip -l "seslendir-${VERSION}.zip" | tail -n 20
 
       - name: Extract release notes from CHANGELOG.md
         run: |
@@ -70,6 +70,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          gh release create "$GITHUB_REF_NAME" "yaziyi-seslendir-${VERSION}.zip" \
+          gh release create "$GITHUB_REF_NAME" "seslendir-${VERSION}.zip" \
             --title "Yazıyı Seslendir ${VERSION}" \
             --notes-file release-notes.md

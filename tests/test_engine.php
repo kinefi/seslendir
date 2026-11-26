@@ -15,7 +15,7 @@ function t( $name, $got, $want = true ) {
 	}
 }
 
-$base = 'https://github.com/kinefi/yaziyi-seslendir/releases/download/engine-1/';
+$base = 'https://github.com/kinefi/seslendir/releases/download/engine-1/';
 function good_file( $name, $size = 1000 ) {
 	global $base;
 	return array(

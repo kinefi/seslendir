@@ -26,13 +26,13 @@
 ## [1.1.0] - 2026-11-25
 ### Added
 - **Automatic engine download.** **Yazıyı Seslendir → Kurulum → Otomatik indir ve kur** fetches the speech engine pack from the project's GitHub release (`engine-1`). It downloads in 6 MB HTTP Range chunks driven by a progress bar (works within shared-hosting time limits), resumes interrupted downloads, verifies every file against the SHA-256 in `engine-manifest.json`, and runs one download at a time. The manifest and file URLs must be `https` on an allow-listed host and may only name the five known engine files.
-- **`Build engine pack` GitHub workflow** (`.github/workflows/build-engine.yml`, manual trigger): builds sherpa-onnx for WebAssembly with the Piper `tr_TR-fettah-medium` voice, adds the optional `lame.min.js`, smoke-tests the pack in headless Chromium (it must really synthesize Turkish speech) and only then publishes the files, `engine-manifest.json` and a manual-install `yaziyi-seslendir-motor.zip` as the `engine-1` release.
+- **`Build engine pack` GitHub workflow** (`.github/workflows/build-engine.yml`, manual trigger): builds sherpa-onnx for WebAssembly with the Piper `tr_TR-fettah-medium` voice, adds the optional `lame.min.js`, smoke-tests the pack in headless Chromium (it must really synthesize Turkish speech) and only then publishes the files, `engine-manifest.json` and a manual-install `seslendir-motor.zip` as the `engine-1` release.
 - `tools/make-engine-manifest.py` (manifest writer), `tools/engine-smoke.mjs` + `tools/smoke.html` (smoke test), `assets/ys-engine.js` (engine loader shared by the admin page and the smoke test, so the test exercises the same loading code as the site).
 - Filters/constant for other hosts: `YS_ENGINE_MANIFEST_URL`, `ys_engine_manifest_url`, `ys_engine_allowed_hosts`.
 - Tests for the downloader (manifest validation, host allow-list, `Content-Range` parsing, resume/reset planning, Python-manifest ↔ PHP-validator compatibility) and for the admin menu and plugin header.
 
 ### Changed
-- **The admin page now has its own item in the left menu** ("Yazıyı Seslendir", below Comments) instead of being hidden under Tools. The posts-list shortcut and all links use `admin.php?page=yaziyi-seslendir`.
+- **The admin page now has its own item in the left menu** ("Yazıyı Seslendir", below Comments) instead of being hidden under Tools. The posts-list shortcut and all links use `admin.php?page=seslendir`.
 - **Requires WordPress 7.0+** (plugin header `Requires at least: 7.0`) and PHP 8.4+.
 - Admin scripts are now loaded only on the tab that needs them (list, setup).
 - License is **GPL-3.0-or-later** (header, `LICENSE`, READMEs).

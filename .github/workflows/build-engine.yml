@@ -133,8 +133,8 @@ jobs:
       - name: Manifest and manual-install zip
         run: |
           python3 tools/make-engine-manifest.py dist "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" --voice "$(basename "$VOICE_REPO")"
-          (cd dist && zip -q ../yaziyi-seslendir-motor.zip sherpa-onnx-* piper-phonemize* $(ls lame.min.js 2>/dev/null))
-          mv yaziyi-seslendir-motor.zip dist/
+          (cd dist && zip -q ../seslendir-motor.zip sherpa-onnx-* piper-phonemize* $(ls lame.min.js 2>/dev/null))
+          mv seslendir-motor.zip dist/
           ls -la dist
           cat dist/engine-manifest.json
 
@@ -142,7 +142,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTES="Yazıyı Seslendir motor paketi (${VOICE_REPO}, sherpa-onnx ${SHERPA_REF}). Eklentinin Kurulum sekmesindeki Otomatik indir düğmesi bu dosyaları indirir; yaziyi-seslendir-motor.zip elle kurulum içindir."
+          NOTES="Yazıyı Seslendir motor paketi (${VOICE_REPO}, sherpa-onnx ${SHERPA_REF}). Eklentinin Kurulum sekmesindeki Otomatik indir düğmesi bu dosyaları indirir; seslendir-motor.zip elle kurulum içindir."
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else

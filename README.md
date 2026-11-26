@@ -8,7 +8,7 @@ Turn your Turkish WordPress posts into natural-sounding audio. The speech is gen
 
 🇹🇷 Türkçe: [README.tr.md](README.tr.md)
 
-Source code, issues and releases: <https://github.com/kinefi/yaziyi-seslendir>
+Source code, issues and releases: <https://github.com/kinefi/seslendir>
 
 ## How it works
 
@@ -38,7 +38,7 @@ There is no ready-made Turkish sherpa-onnx WebAssembly build to download, becaus
 - **Maintainer, once:** GitHub → **Actions → Build engine pack → Run workflow**. It builds sherpa-onnx for WebAssembly with the Piper `tr_TR-fettah-medium` voice, loads the result in headless Chromium and checks that it really speaks Turkish, then publishes the files plus `engine-manifest.json` as the GitHub release `engine-1`. Nothing is published if the smoke test fails.
 - **Every site:** the **Otomatik indir** button reads that manifest and downloads the files.
 
-Until the workflow has run once, the Kurulum tab says the pack is not published yet. If your server cannot reach GitHub, download `yaziyi-seslendir-motor.zip` from the `engine-1` release and upload it in the **Kurulum** tab, or copy the files by FTP to `wp-content/uploads/yaziyi-seslendir-motor/`.
+Until the workflow has run once, the Kurulum tab says the pack is not published yet. If your server cannot reach GitHub, download `seslendir-motor.zip` from the `engine-1` release and upload it in the **Kurulum** tab, or copy the files by FTP to `wp-content/uploads/seslendir-motor/`.
 
 | File | Required | Purpose |
 |---|---|---|

@@ -110,8 +110,8 @@ jobs:
       - name: Manifest and manual-install zip
         run: |
           python3 tools/make-engine-manifest.py dist "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" --engine piper-ort --voice "$(basename "$VOICE_REPO")"
-          (cd dist && zip -q ../yaziyi-seslendir-motor-ort.zip ort* voice.onnx voice.onnx.json piper-phonemize* $(ls lame.min.js 2>/dev/null))
-          mv yaziyi-seslendir-motor-ort.zip dist/
+          (cd dist && zip -q ../seslendir-motor-ort.zip ort* voice.onnx voice.onnx.json piper-phonemize* $(ls lame.min.js 2>/dev/null))
+          mv seslendir-motor-ort.zip dist/
           ls -la dist
           cat dist/engine-manifest.json
 
@@ -119,7 +119,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTES="Yazıyı Seslendir motor paketi (ONNX Runtime Web ${ORT_VERSION} + Piper, ${VOICE_REPO}). wp-config.php içinde define( 'YS_ENGINE_KIND', 'piper-ort' ); ile kullanılır; yaziyi-seslendir-motor-ort.zip elle kurulum içindir."
+          NOTES="Yazıyı Seslendir motor paketi (ONNX Runtime Web ${ORT_VERSION} + Piper, ${VOICE_REPO}). wp-config.php içinde define( 'YS_ENGINE_KIND', 'piper-ort' ); ile kullanılır; seslendir-motor-ort.zip elle kurulum içindir."
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else

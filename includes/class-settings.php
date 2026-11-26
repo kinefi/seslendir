@@ -171,12 +171,12 @@ class YS_Settings {
 
 	public static function engine_dir() {
 		$u = wp_upload_dir();
-		return rtrim( $u['basedir'], '/\\' ) . '/yaziyi-seslendir-motor';
+		return rtrim( $u['basedir'], '/\\' ) . '/seslendir-motor';
 	}
 
 	public static function engine_url() {
 		$u = wp_upload_dir();
-		return rtrim( $u['baseurl'], '/' ) . '/yaziyi-seslendir-motor/';
+		return rtrim( $u['baseurl'], '/' ) . '/seslendir-motor/';
 	}
 
 	/**

@@ -2,12 +2,12 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * REST uç noktaları (yaziyi-seslendir/v1). Hepsi oturum + nonce ister,
+ * REST uç noktaları (seslendir/v1). Hepsi oturum + nonce ister,
  * yazı bazlı olanlar ayrıca edit_post yetkisi ister.
  */
 class YS_REST {
 
-	const NS = 'yaziyi-seslendir/v1';
+	const NS = 'seslendir/v1';
 
 	public static function init() {
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );

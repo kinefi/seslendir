@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Yazıyı Seslendir
- * Plugin URI:        https://github.com/kinefi/yaziyi-seslendir
+ * Plugin URI:        https://github.com/kinefi/seslendir
  * Description:       Yazıları doğal Türkçe sesle seslendirir. Ses, yönetim sayfasındaki düğmeyle tarayıcıda üretilir ve Medya Kitaplığı'na kaydedilir; ziyaretçiler hazır dosyayı dinler. Dış servis ve sunucu komutu kullanmaz.
  * Version:           1.3.0
  * Requires at least: 7.0
@@ -10,7 +10,7 @@
  * Author URI:        https://github.com/kinefi
  * License: GPL-3.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
- * Text Domain:       yaziyi-seslendir
+ * Text Domain:       seslendir
  */
 
 defined( 'ABSPATH' ) || exit;

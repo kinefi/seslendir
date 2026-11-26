@@ -21,7 +21,7 @@ function manifest_for( $kind, $engine_field = true ) {
 			'name'   => $name,
 			'size'   => 1000,
 			'sha256' => str_repeat( 'b', 64 ),
-			'url'    => 'https://github.com/kinefi/yaziyi-seslendir/releases/download/x/' . $name,
+			'url'    => 'https://github.com/kinefi/seslendir/releases/download/x/' . $name,
 		);
 	}
 	$m = array(
@@ -73,7 +73,7 @@ $m['files'][] = array(
 	'name'   => 'ort.wasm.min.js',
 	'size'   => 10,
 	'sha256' => str_repeat( 'c', 64 ),
-	'url'    => 'https://github.com/kinefi/yaziyi-seslendir/releases/download/x/ort.wasm.min.js',
+	'url'    => 'https://github.com/kinefi/seslendir/releases/download/x/ort.wasm.min.js',
 );
 $r = YS_Engine::validate_manifest( $m );
 t( 'izinsiz ad reddedilir', $r['ok'], false );

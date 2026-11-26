@@ -8,7 +8,7 @@ WordPress yazılarınızı doğal Türkçe sesle seslendirir. Ses, **çevrimdı�
 
 🇬🇧 English: [README.md](README.md)
 
-Kaynak kod, sorunlar ve sürümler: <https://github.com/kinefi/yaziyi-seslendir>
+Kaynak kod, sorunlar ve sürümler: <https://github.com/kinefi/seslendir>
 
 ## Nasıl çalışır?
 
@@ -38,7 +38,7 @@ Kaynak kod, sorunlar ve sürümler: <https://github.com/kinefi/yaziyi-seslendir>
 - **Proje sahibi, bir kez:** GitHub → **Actions → Build engine pack → Run workflow**. İş akışı sherpa-onnx'i Piper `tr_TR-fettah-medium` sesiyle WebAssembly için derler, sonucu başsız Chromium'da açıp gerçekten Türkçe konuştuğunu doğrular, sonra dosyaları ve `engine-manifest.json`'u `engine-1` GitHub sürümü olarak yayımlar. Duman testi başarısızsa hiçbir şey yayımlanmaz.
 - **Her site:** **Otomatik indir** düğmesi bu manifesti okur ve dosyaları indirir.
 
-İş akışı bir kez çalışana kadar Kurulum sekmesi paketin henüz yayımlanmadığını söyler. Sunucunuz GitHub'a ulaşamıyorsa `engine-1` sürümündeki `yaziyi-seslendir-motor.zip` dosyasını indirip **Kurulum** sekmesinden yükleyin ya da dosyaları FTP ile `wp-content/uploads/yaziyi-seslendir-motor/` klasörüne kopyalayın.
+İş akışı bir kez çalışana kadar Kurulum sekmesi paketin henüz yayımlanmadığını söyler. Sunucunuz GitHub'a ulaşamıyorsa `engine-1` sürümündeki `seslendir-motor.zip` dosyasını indirip **Kurulum** sekmesinden yükleyin ya da dosyaları FTP ile `wp-content/uploads/seslendir-motor/` klasörüne kopyalayın.
 
 | Dosya | Zorunlu | Görevi |
 |---|---|---|

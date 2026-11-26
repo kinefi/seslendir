@@ -14,16 +14,16 @@ defined( 'ABSPATH' ) || exit;
  */
 class YS_Engine {
 
-	const NS       = 'yaziyi-seslendir/v1';
+	const NS       = 'seslendir/v1';
 	const CHUNK    = 6291456; // 6 MB.
 	const MAX_FILE = 314572800; // 300 MB.
 	const MAX_ALL  = 419430400; // 400 MB.
 	const LOCK     = 'ys_engine_lock';
 	const CACHE    = 'ys_engine_manifest';
 
-	const MANIFEST_DEFAULT     = 'https://github.com/kinefi/yaziyi-seslendir/releases/download/engine-1/engine-manifest.json';
-	const MANIFEST_DEFAULT_ORT = 'https://github.com/kinefi/yaziyi-seslendir/releases/download/engine-2/engine-manifest.json';
-	const MANIFEST_DEFAULT_OKUR = 'https://github.com/kinefi/yaziyi-seslendir/releases/download/engine-3/engine-manifest.json';
+	const MANIFEST_DEFAULT     = 'https://github.com/kinefi/seslendir/releases/download/engine-1/engine-manifest.json';
+	const MANIFEST_DEFAULT_ORT = 'https://github.com/kinefi/seslendir/releases/download/engine-2/engine-manifest.json';
+	const MANIFEST_DEFAULT_OKUR = 'https://github.com/kinefi/seslendir/releases/download/engine-3/engine-manifest.json';
 
 	public static function init() {
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );

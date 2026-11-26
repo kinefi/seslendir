@@ -4,7 +4,7 @@
 # Beklenen dosyalar: sherpa-onnx-tts.js, sherpa-onnx-wasm-main-tts.{js,wasm,data}
 set -e
 SRC="${1:?Kullanım: make-engine-pack.sh <derleme-klasörü> [lame.min.js]}"
-OUT="yaziyi-seslendir-motor.zip"
+OUT="seslendir-motor.zip"
 TMP="$(mktemp -d)"
 for f in sherpa-onnx-tts.js sherpa-onnx-wasm-main-tts.js sherpa-onnx-wasm-main-tts.wasm sherpa-onnx-wasm-main-tts.data; do
   [ -f "$SRC/$f" ] || { echo "Eksik dosya: $SRC/$f" >&2; exit 1; }

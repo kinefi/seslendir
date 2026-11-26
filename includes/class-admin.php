@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
  */
 class YS_Admin {
 
-	const SLUG = 'yaziyi-seslendir';
+	const SLUG = 'seslendir';
 
 	private static $hook = '';
 
@@ -178,7 +178,7 @@ class YS_Admin {
 		printf( '<p>%s</p>', esc_html( $st['ready'] ? 'Motor hazır. Yazılar sekmesinden seslendirmeye başlayabilirsiniz.' : 'Motor henüz hazır değil.' ) );
 
 		echo '<h3>Elle kurulum (yedek)</h3>';
-		echo '<p>Sunucunuz dış adreslere bağlanamıyorsa GitHub sürümlerindeki <code>yaziyi-seslendir-motor.zip</code> dosyasını bilgisayarınıza indirip buradan yükleyin. Yalnızca yukarıdaki dosya adları kabul edilir; başka her şey yok sayılır.</p>';
+		echo '<p>Sunucunuz dış adreslere bağlanamıyorsa GitHub sürümlerindeki <code>seslendir-motor.zip</code> dosyasını bilgisayarınıza indirip buradan yükleyin. Yalnızca yukarıdaki dosya adları kabul edilir; başka her şey yok sayılır.</p>';
 		printf( '<form method="post" action="%s" enctype="multipart/form-data">', esc_url( admin_url( 'admin-post.php' ) ) );
 		echo '<input type="hidden" name="action" value="ys_upload_engine">';
 		wp_nonce_field( 'ys_engine_upload' );

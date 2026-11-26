@@ -4,4 +4,5 @@
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 delete_option( 'ys_settings' );
+delete_option( 'ys_engine_migrated' );
 wp_clear_scheduled_hook( 'ys_weekly_cleanup' );

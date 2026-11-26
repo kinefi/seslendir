@@ -1,5 +1,5 @@
 /*
- * Yazıyı Seslendir: Piper (VITS) modeli için saf yardımcılar (DOM'a bağlı değil, Node'da test edilir).
+ * Seslendir: Piper (VITS) modeli için saf yardımcılar (DOM'a bağlı değil, Node'da test edilir).
  * piper-phonemize'ın verdiği fonem kodlarını model girdisine çevirir. Çıkarım ONNX Runtime Web ile
  * ys-engine.js içinde yapılır.
  */

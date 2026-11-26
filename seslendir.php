@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       Yazıyı Seslendir
+ * Plugin Name:       Seslendir
  * Plugin URI:        https://github.com/kinefi/seslendir
  * Description:       Yazıları doğal Türkçe sesle seslendirir. Ses, yönetim sayfasındaki düğmeyle tarayıcıda üretilir ve Medya Kitaplığı'na kaydedilir; ziyaretçiler hazır dosyayı dinler. Dış servis ve sunucu komutu kullanmaz.
- * Version:           1.3.0
+ * Version:           1.4.0
  * Requires at least: 7.0
  * Requires PHP:      8.5
  * Author:            kinefi
@@ -15,13 +15,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'YS_VERSION', '1.3.0' );
+define( 'YS_VERSION', '1.4.0' );
 define( 'YS_FORMAT', 1 ); // Ses biçimi sürümü: değişirse tüm sesler "eski" sayılır.
 define( 'YS_FILE', __FILE__ );
 define( 'YS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'YS_URL', plugin_dir_url( __FILE__ ) );
 define( 'YS_MAX_CHARS', 60000 );
 
+require_once YS_DIR . 'includes/class-models.php';
 require_once YS_DIR . 'includes/class-settings.php';
 require_once YS_DIR . 'includes/class-normalizer-tr.php';
 require_once YS_DIR . 'includes/class-storage.php';

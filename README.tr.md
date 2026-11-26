@@ -1,4 +1,4 @@
-# Yazıyı Seslendir
+# Seslendir
 
 WordPress yazılarınızı doğal Türkçe sesle seslendirir. Ses, **çevrimdışı ve editörün kendi tarayıcısında** üretilir, Medya Kitaplığı'na kaydedilir ve ziyaretçilere sade bir `<audio>` oynatıcısıyla sunulur.
 
@@ -12,7 +12,7 @@ Kaynak kod, sorunlar ve sürümler: <https://github.com/kinefi/seslendir>
 
 ## Nasıl çalışır?
 
-1. Düzenleme yetkisi olan biri sol yönetim menüsündeki **Yazıyı Seslendir** sayfasını açar ve bir yazı için **Üret**'e basar (ya da birçok yazı seçer).
+1. Düzenleme yetkisi olan biri sol yönetim menüsündeki **Seslendir** sayfasını açar ve bir yazı için **Üret**'e basar (ya da birçok yazı seçer).
 2. Eklenti metni sunucuda hazırlar (sayılar, tarihler, para, kısaltmalar → okunuşa çevrilir) ve cümlelere böler.
 3. Tarayıcı yerel bir WebAssembly ses motoru (sherpa-onnx üzerinde Piper Türkçe sesi) yükler ve sesi üretir. İlerleme, kapatılamayan bir pencerede gösterilir.
 4. İsterseniz sonucu **dinleyip onaylarsınız**; ses kimlik doğrulamalı bir REST uç noktasından yüklenir ve yazıya bağlanır.
@@ -28,50 +28,38 @@ Kaynak kod, sorunlar ve sürümler: <https://github.com/kinefi/seslendir>
 ## Kurulum
 
 1. Eklenti klasörünü `wp-content/plugins/` içine yükleyin (ya da sürüm ZIP'ini kurun) ve etkinleştirin.
-2. **Yazıyı Seslendir → Kurulum** sekmesini açın ve **Otomatik indir ve kur**'a basın. Paket küçük parçalarla, ilerleme çubuğuyla indirilir; her dosya SHA-256 ile doğrulanır; yarıda kalan indirme kaldığı yerden devam eder.
+2. **Seslendir → Kurulum** sekmesini açın ve **Otomatik indir ve kur**'a basın. Paket küçük parçalarla, ilerleme çubuğuyla indirilir; her dosya SHA-256 ile doğrulanır; yarıda kalan indirme kaldığı yerden devam eder.
 3. **Ayarlar** sekmesinde seslendirilecek içerik türlerini seçin. Varsayılan olarak yalnızca "Yazılar" etkindir.
 
-### Motor paketi nereden geliyor?
+### Modeller ve motor paketleri
 
-İndirilebilir hazır bir Türkçe sherpa-onnx WebAssembly paketi yoktur; çünkü sherpa'nın hazır paketlerinin her birinin sesi içine gömülüdür. Bu yüzden bu depo paketi kendisi derler:
+**Seslendir → Ayarlar** desteklenen modelleri listeler; birini seçip kaydedin. **Kurulum** sekmesi yalnızca seçili modeli kendi klasörüne indirir (`wp-content/uploads/seslendir-motor/<model>/`). Model değiştirince diğer indirmeler silinmez. Başka bir modelle üretilmiş sesler **Eski** olarak işaretlenir.
 
-- **Proje sahibi, bir kez:** GitHub → **Actions → Build engine pack → Run workflow**. İş akışı sherpa-onnx'i Piper `tr_TR-fettah-medium` sesiyle WebAssembly için derler, sonucu başsız Chromium'da açıp gerçekten Türkçe konuştuğunu doğrular, sonra dosyaları ve `engine-manifest.json`'u `engine-1` GitHub sürümü olarak yayımlar. Duman testi başarısızsa hiçbir şey yayımlanmaz.
-- **Her site:** **Otomatik indir** düğmesi bu manifesti okur ve dosyaları indirir.
-
-İş akışı bir kez çalışana kadar Kurulum sekmesi paketin henüz yayımlanmadığını söyler. Sunucunuz GitHub'a ulaşamıyorsa `engine-1` sürümündeki `seslendir-motor.zip` dosyasını indirip **Kurulum** sekmesinden yükleyin ya da dosyaları FTP ile `wp-content/uploads/seslendir-motor/` klasörüne kopyalayın.
-
-| Dosya | Zorunlu | Görevi |
+| Model | Motor | Not |
 |---|---|---|
-| `sherpa-onnx-tts.js` | evet | JavaScript API (`createOfflineTts`) |
-| `sherpa-onnx-wasm-main-tts.js` | evet | Emscripten yükleyicisi |
-| `sherpa-onnx-wasm-main-tts.wasm` | evet | Çalışma zamanı |
-| `sherpa-onnx-wasm-main-tts.data` | evet | Paketlenmiş model ve `tokens.txt` |
-| `piper-phonemize.js`, `piper-phonemize-wasm-main.js/.wasm/.data` | evet | Türkçe metin → fonem (espeak-ng); Web Worker'da çalışır |
-| `lame.min.js` | hayır | [lamejs](https://github.com/zhuker/lamejs) (LGPL); varsa ses WAV yerine küçük MP3 olarak kaydedilir |
+| `piper-sherpa` (varsayılan) | sherpa-onnx WebAssembly + Piper `tr_TR-fettah-medium` | En uyumlu, uçtan uca doğrulandı |
+| `piper-ort` | ONNX Runtime Web + aynı Piper sesi | C++ derlemesi yok; daha az sınandı |
+| `okur` | ONNX Runtime Web + [Okur TTS](https://github.com/ahmethakanbesel/okur-tts) | Çoğunlukla daha doğal; ağırlıklar CC BY 4.0 (atıf gerekir); daha az sınandı |
 
-Başka bir sunucu ya da farklı bir ses için `YS_ENGINE_MANIFEST_URL` sabitini (ya da `ys_engine_manifest_url` filtresini) ayarlayın; sunucu GitHub ya da Hugging Face değilse `ys_engine_allowed_hosts` filtresiyle ekleyin. Manifest dosyaları `https` olmalı, yalnızca yukarıdaki dokuz dosya adını içermeli ve her dosya için SHA-256 taşımalıdır.
+**Proje sahibi, bir kez:** GitHub → **Actions → Build engines → Run workflow** (`models = all` ya da tek model). Her model kendi işinde derlenir, başsız Chromium'da gerçekten Türkçe konuştuğu doğrulanır, ancak ondan sonra `engine-manifest.json` ile birlikte `motor-piper-sherpa`, `motor-piper-ort` ya da `motor-okur` GitHub sürümü olarak yayımlanır. Duman testi başarısızsa hiçbir şey yayımlanmaz.
 
-> **Durum notu:** PHP, normalleştirici, depolama, indirme ve arayüz kodu otomatik testlerle sınanmıştır. WebAssembly motorunun kendisi bu sürümün hazırlandığı ortamda derlenemedi; yani *Build engine pack* iş akışı onun ilk gerçek çalıştırmasıdır ve paketin çalıştığını duman testi kanıtlar. Derleme adımı hata verirse o adımın günlüğünü açın (sherpa-onnx betik adı ya da varlık düzeni sürümler arasında değişebilir; `sherpa_ref` girdisiyle bir sürümü sabitleyebilirsiniz).
+**Her site:** **Otomatik indir** düğmesi seçili modelin manifestini okur ve dosyaları küçük, kaldığı yerden devam eden parçalarla indirir; her dosya SHA-256 ile doğrulanır. Sunucunuz GitHub'a ulaşamıyorsa ilgili sürümden `seslendir-motor-<model>.zip` dosyasını indirip **Kurulum** sekmesinden yükleyin ya da dosyaları FTP ile modelin klasörüne kopyalayın.
 
-### Okur TTS (`okur`)
+Modele göre dosyalar (manifest tam olarak bunları listeler, başka bir şey kabul edilmez):
 
-[Okur](https://github.com/ahmethakanbesel/okur-tts), küçük ve açık bir Türkçe modeldir (tek ses, 48 kHz). Kullanmak için:
+| Model | Dosyalar |
+|---|---|
+| `piper-sherpa` | `sherpa-onnx-tts.js`, `sherpa-onnx-wasm-main-tts.js/.wasm/.data`, fonemleştirici (aşağıda) |
+| `piper-ort` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `voice.onnx`, `voice.onnx.json`, fonemleştirici |
+| `okur` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `okur-config.json`, `okur-frontend.wasm`, `okur-text.onnx`, `okur-sample.onnx`, `okur-decoder.onnx` |
+| fonemleştirici (Piper modelleri) | `piper-phonemize.js`, `piper-phonemize-wasm-main.js/.wasm/.data` (Türkçe metin → fonem, espeak-ng; Web Worker'da) |
+| isteğe bağlı | `lame.min.js` ([lamejs](https://github.com/zhuker/lamejs), LGPL): ses WAV yerine küçük MP3 kaydedilir |
 
-1. Bir kez **Actions → Build engine pack (Okur) → Run workflow** çalıştırın (`engine-3` sürümünü yayımlar; Rust metin ön yüzü orada derlenir).
-2. `wp-config.php` dosyasına `define( 'YS_ENGINE_KIND', 'okur' );` ekleyin.
-3. **Kurulum → Otomatik indir ve kur** düğmesini kullanın.
+Başka sunucular için `YS_ENGINE_MANIFEST_URL` (ya da `ys_engine_manifest_url` filtresi) ayarlayın; sunucu GitHub/Hugging Face değilse `ys_engine_allowed_hosts` ile ekleyin. Manifest `https` olmalı, her dosya için SHA-256 taşımalı ve seçili motor türüyle eşleşmelidir. Eski sürümün indirdiği paketler yeni klasöre otomatik taşınır.
 
-Lisanslar: Okur'un kodu Apache-2.0, ağırlıkları **CC BY 4.0**'dır; bu yüzden atıf gerekir: "okur" (Ahmet Hakan Beşel) ve eğitim derlemleri Mozilla Common Voice (CC0), ISSAI Turkish Speech Corpus (MIT), MediaSpeech (CC BY 4.0), Google FLEURS (CC BY 4.0). Projenin NOTICE dosyasına bakın. Model kartı, sesin gerçek bir kişiyi taklit etmek ya da insan sesi gibi sunmak için kullanılmamasını ister.
+> **Durum notu:** PHP, normalleştirici, depolama, indirme ve arayüz kodu otomatik testlerle sınanmıştır. Gerçek bir sitede uçtan uca yalnızca `piper-sherpa` paketi çalıştırıldı; `piper-ort` ve `okur` yalnızca iş akışının duman testiyle doğrulanır.
 
-### Alternatif motor: ONNX Runtime (`piper-ort`)
-
-sherpa-onnx'i WebAssembly için derlemek kurulumun en kırılgan kısmıdır. Alternatif olarak eklenti, Piper modelini ONNX Runtime Web ile doğrudan çalıştırabilir (hiç derleme yok):
-
-1. Bir kez **Actions → Build engine pack (ONNX Runtime) → Run workflow** çalıştırın (`engine-2` sürümünü yayımlar).
-2. `wp-config.php` dosyasına `define( 'YS_ENGINE_KIND', 'piper-ort' );` ekleyin.
-3. **Kurulum → Otomatik indir ve kur** düğmesini her zamanki gibi kullanın.
-
-ONNX Runtime paketi doğrulanana kadar varsayılan `sherpa` kalır. Ticari kullanımdan önce sesin lisansını kontrol edin.
+Okur lisansları: kod Apache-2.0, ağırlıklar **CC BY 4.0**, yani atıf gerekir: "okur" (Ahmet Hakan Beşel) ve eğitim derlemleri Mozilla Common Voice (CC0), ISSAI Turkish Speech Corpus (MIT), MediaSpeech (CC BY 4.0) ve Google FLEURS (CC BY 4.0). Model kartı, sesin gerçek bir kişiyi taklit etmek ya da insan gibi sunmak için kullanılmamasını ister. Ticari kullanımdan önce Piper sesinin lisansını da kontrol edin.
 
 ## Kullanım
 
@@ -81,7 +69,7 @@ ONNX Runtime paketi doğrulanana kadar varsayılan `sherpa` kalır. Ticari kulla
   - **Dinle / Sil**: kayıtlı sesi çalar ya da siler.
   - **Eksik olanların hepsini seslendir**, **Eski olanları yenile**, **Seçilenleri seslendir**: toplu işlemler. Pencere bitene kadar sekmeyi açık tutun.
 - **Yazılar listesi:** isteğe bağlı, salt-okunur **Ses** sütunu üretim sayfasına kısayol verir.
-- **Ön yüz:** oynatıcı yazı içeriğinin üstüne otomatik eklenir. İsterseniz otomatik eklemeyi kapatıp `[yaziyi_seslendir]` kısa kodunu (isteğe bağlı `id="123"`) kendiniz yerleştirin.
+- **Ön yüz:** oynatıcı yazı içeriğinin üstüne otomatik eklenir. İsterseniz otomatik eklemeyi kapatıp `[seslendir]` kısa kodunu (isteğe bağlı `id="123"`) kendiniz yerleştirin.
 
 ## Ayarlar
 
@@ -126,7 +114,7 @@ sh tests/run.sh        # PHP lint, JS sözdizimi, PHP testleri, JS testleri
 - `tools/make-engine-manifest.py`: `engine-manifest.json` yazar; `tools/engine-smoke.mjs`: motor paketinin başsız Chromium duman testi.
 - `.github/workflows/tests.yml`: PHP 8.5 ve Node üzerinde lint ve testler.
 - `.github/workflows/security.yml`: WordPress güvenlik kuralları, PHP 8.5 uyumluluğu, Semgrep, CodeQL, Gitleaks (haftalık ve her push/PR'da).
-- `.github/workflows/build-engine.yml`: motor paketini derler, duman testinden geçirir ve yayımlar (elle tetiklenir).
+- `.github/workflows/build-engines.yml`: motor paketlerini (her model ayrı iş) derler, duman testinden geçirir ve yayımlar (elle tetiklenir).
 - `.github/workflows/release.yml`: `vX.Y.Z` etiketi itilince kurulabilir ZIP'i üretip GitHub sürümü yayımlar. Etiket; eklenti başlığındaki sürüm, `YS_VERSION` ve `CHANGELOG.md` kaydıyla eşleşmelidir.
 
 ## Lisans

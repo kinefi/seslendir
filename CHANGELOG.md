@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.0] - 2026-11-26
+### Added
+- **Model selection in Ayarlar**: the supported models (`piper-sherpa`, `piper-ort`, `okur`) are listed with size, description and licence. Kurulum downloads only the selected model, into `seslendir-motor/<model>/`; downloads of other models are kept. Packs from older versions are migrated automatically.
+- Single workflow **Build engines** (`build-engines.yml`): builds and smoke-tests every model in its own job and publishes the releases `motor-piper-sherpa`, `motor-piper-ort` and `motor-okur`.
+- Shortcode alias `[yaziyi_seslendir]` next to `[seslendir]`.
+### Changed
+- Project renamed to **Seslendir** (repository `kinefi/seslendir`); leftover old names removed.
+- The selected model is part of the audio hash: changing the model marks existing audio **Eski**.
+- Default player label is now "Yazıyı dinleyin".
+### Removed
+- `YS_ENGINE_KIND` constant, the `engine-1/2/3` releases and the `build-engine*.yml` workflows (replaced by model selection and `build-engines.yml`).
+### Security
+- `ys-phonemize-worker.js`: the engine base URL must be same-origin and a plain path, the version suffix is whitelisted, messages from other origins are ignored and the worker initialises only once (closes the CodeQL alerts for URL redirect and missing postMessage origin check).
+
 ## [1.3.0] - 2026-11-26
 ### Added
 - **Third engine kind, `okur`**: [Okur TTS](https://github.com/ahmethakanbesel/okur-tts), a small Turkish model (one voice, 48 kHz) run with ONNX Runtime Web. Its text frontend is compiled from Rust to WebAssembly in CI. New workflow `Build engine pack (Okur)` (`build-engine-okur.yml`, release `engine-3`) collects the pack and smoke-tests it in headless Chromium before publishing. Select it with `define( 'YS_ENGINE_KIND', 'okur' );`.

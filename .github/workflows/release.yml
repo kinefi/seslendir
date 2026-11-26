@@ -71,5 +71,5 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           gh release create "$GITHUB_REF_NAME" "seslendir-${VERSION}.zip" \
-            --title "Yazıyı Seslendir ${VERSION}" \
+            --title "Seslendir ${VERSION}" \
             --notes-file release-notes.md

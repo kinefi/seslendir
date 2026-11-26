@@ -1,5 +1,5 @@
 <?php
-// Sol menüde üst düzey "Yazıyı Seslendir" öğesi olarak kaydedildiğini (Araçlar altında değil) doğrular.
+// Sol menüde üst düzey "Seslendir" öğesi olarak kaydedildiğini (Araçlar altında değil) doğrular.
 require __DIR__ . '/wp_stubs.php';
 
 $GLOBALS['__menu'] = array();
@@ -19,6 +19,7 @@ function add_query_arg( $args, $url ) {
 	return $url . '?' . http_build_query( $args );
 }
 
+require dirname( __DIR__ ) . '/includes/class-models.php';
 require dirname( __DIR__ ) . '/includes/class-settings.php';
 require dirname( __DIR__ ) . '/includes/class-admin.php';
 
@@ -36,7 +37,7 @@ function t( $name, $got, $want = true ) {
 YS_Admin::menu();
 $m = $GLOBALS['__menu'];
 t( 'üst düzey menü eklendi', $m['slug'], 'seslendir' );
-t( 'menü adı', $m['menu'], 'Yazıyı Seslendir' );
+t( 'menü adı', $m['menu'], 'Seslendir' );
 t( 'yetki edit_posts', $m['cap'], 'edit_posts' );
 t( 'ikon', $m['icon'], 'dashicons-controls-volumeon' );
 t( 'konum Yorumlar sonrası', $m['pos'], 26 );

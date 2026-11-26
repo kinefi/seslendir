@@ -60,7 +60,7 @@ class YS_Storage {
 					$chunks,
 					(float) YS_Settings::get( 'speed' ),
 					(int) YS_Settings::get( 'speaker' ),
-					(string) YS_Settings::get( 'voice_tag' ),
+					YS_Settings::model() . '|' . (string) YS_Settings::get( 'voice_tag' ),
 				)
 			)
 		);

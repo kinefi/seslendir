@@ -1,8 +1,18 @@
 <?php
 // Motor türleri: "sherpa" (varsayılan) ve "piper-ort". Dosya listeleri, manifest adresi, manifest türü uyumu.
 require __DIR__ . '/wp_stubs.php';
+require dirname( __DIR__ ) . '/includes/class-models.php';
 require dirname( __DIR__ ) . '/includes/class-settings.php';
 require dirname( __DIR__ ) . '/includes/class-engine.php';
+
+if ( ! function_exists( 'wp_upload_dir' ) ) {
+	function wp_upload_dir() {
+		return array(
+			'basedir' => sys_get_temp_dir() . '/ys-kinds-' . getmypid(),
+			'baseurl' => 'https://example.test/wp-content/uploads',
+		);
+	}
+}
 
 $fail = 0;
 $n    = 0;
@@ -39,18 +49,19 @@ function manifest_for( $kind, $engine_field = true ) {
 t( 'varsayılan tür', YS_Settings::engine_kind(), 'sherpa' );
 t( 'sherpa: sherpa dosyası zorunlu', in_array( 'sherpa-onnx-wasm-main-tts.wasm', YS_Settings::engine_required(), true ) );
 t( 'sherpa: ort dosyası zorunlu değil', in_array( 'ort.wasm.min.js', YS_Settings::engine_required(), true ), false );
-t( 'sherpa: varsayılan manifest engine-1', false !== strpos( YS_Engine::manifest_url(), '/engine-1/' ) );
+t( 'sherpa: varsayılan manifest motor-piper-sherpa', false !== strpos( YS_Engine::manifest_url(), '/motor-piper-sherpa/' ) );
 t( 'sherpa manifesti (engine alanı ile)', YS_Engine::validate_manifest( manifest_for( 'sherpa' ) )['ok'] );
 t( 'sherpa manifesti (engine alanı olmadan)', YS_Engine::validate_manifest( manifest_for( 'sherpa', false ) )['ok'] );
 $r = YS_Engine::validate_manifest( manifest_for( 'piper-ort' ) );
 t( 'sherpa iken ort manifesti reddedilir', $r['ok'], false );
 
 // Geçersiz tür -> sherpa.
-$GLOBALS['ys_test_filters']['ys_engine_kind'] = 'bilinmeyen';
-t( 'bilinmeyen tür sherpa sayılır', YS_Settings::engine_kind(), 'sherpa' );
+$GLOBALS['ys_test_filters']['ys_model'] = 'bilinmeyen';
+t( 'bilinmeyen model varsayılana düşer', YS_Settings::model(), 'piper-sherpa' );
+t( 'bilinmeyen modelde tür sherpa', YS_Settings::engine_kind(), 'sherpa' );
 
 // piper-ort.
-$GLOBALS['ys_test_filters']['ys_engine_kind'] = 'piper-ort';
+$GLOBALS['ys_test_filters']['ys_model'] = 'piper-ort';
 t( 'ort türü', YS_Settings::engine_kind(), 'piper-ort' );
 $req = YS_Settings::engine_required();
 foreach ( array( 'ort.wasm.min.js', 'ort-wasm-simd-threaded.js', 'ort-wasm-simd-threaded.wasm', 'voice.onnx', 'voice.onnx.json', 'piper-phonemize-wasm-main.data' ) as $f ) {
@@ -59,7 +70,7 @@ foreach ( array( 'ort.wasm.min.js', 'ort-wasm-simd-threaded.js', 'ort-wasm-simd-
 t( 'ort: sherpa dosyası zorunlu değil', in_array( 'sherpa-onnx-tts.js', $req, true ), false );
 t( 'ort: dosya sayısı', count( $req ), 9 );
 t( 'ort: izinli adlar', count( YS_Settings::engine_allowed_names() ), 10 );
-t( 'ort: varsayılan manifest engine-2', false !== strpos( YS_Engine::manifest_url(), '/engine-2/' ) );
+t( 'ort: varsayılan manifest motor-piper-ort', false !== strpos( YS_Engine::manifest_url(), '/motor-piper-ort/' ) );
 t( 'ort manifesti geçerli', YS_Engine::validate_manifest( manifest_for( 'piper-ort' ) )['ok'] );
 $r = YS_Engine::validate_manifest( manifest_for( 'sherpa' ) );
 t( 'ort iken sherpa manifesti reddedilir', $r['ok'], false );
@@ -67,7 +78,7 @@ $bad = manifest_for( 'piper-ort' );
 array_pop( $bad['files'] );
 t( 'ort: eksik zorunlu dosya reddedilir', YS_Engine::validate_manifest( $bad )['ok'], false );
 
-$GLOBALS['ys_test_filters']['ys_engine_kind'] = 'sherpa';
+$GLOBALS['ys_test_filters']['ys_model'] = 'piper-sherpa';
 $m = manifest_for( 'sherpa' );
 $m['files'][] = array(
 	'name'   => 'ort.wasm.min.js',
@@ -80,7 +91,7 @@ t( 'izinsiz ad reddedilir', $r['ok'], false );
 t( 'hata mesajı dosya adını söyler', false !== strpos( $r['error'], 'ort.wasm.min.js' ) );
 
 // okur.
-$GLOBALS['ys_test_filters']['ys_engine_kind'] = 'okur';
+$GLOBALS['ys_test_filters']['ys_model'] = 'okur';
 t( 'okur türü', YS_Settings::engine_kind(), 'okur' );
 $req = YS_Settings::engine_required();
 foreach ( array( 'okur-frontend.wasm', 'okur-text.onnx', 'okur-sample.onnx', 'okur-decoder.onnx', 'okur-config.json', 'ort.wasm.min.js' ) as $f ) {
@@ -88,11 +99,33 @@ foreach ( array( 'okur-frontend.wasm', 'okur-text.onnx', 'okur-sample.onnx', 'ok
 }
 t( 'okur: fonemleştirici gerekmez', in_array( 'piper-phonemize.js', $req, true ), false );
 t( 'okur: dosya sayısı', count( $req ), 8 );
-t( 'okur: varsayılan manifest engine-3', false !== strpos( YS_Engine::manifest_url(), '/engine-3/' ) );
+t( 'okur: varsayılan manifest motor-okur', false !== strpos( YS_Engine::manifest_url(), '/motor-okur/' ) );
 t( 'okur manifesti geçerli', YS_Engine::validate_manifest( manifest_for( 'okur' ) )['ok'] );
 t( 'okur iken piper-ort manifesti reddedilir', YS_Engine::validate_manifest( manifest_for( 'piper-ort' ) )['ok'], false );
-$GLOBALS['ys_test_filters']['ys_engine_kind'] = 'sherpa';
+$GLOBALS['ys_test_filters']['ys_model'] = 'piper-sherpa';
 t( 'sherpa iken okur manifesti reddedilir', YS_Engine::validate_manifest( manifest_for( 'okur' ) )['ok'], false );
+
+// Model kaydı ve model başına klasör/durum.
+$GLOBALS['ys_test_filters']['ys_model'] = 'piper-sherpa';
+t( 'üç model kayıtlı', YS_Models::ids(), array( 'piper-sherpa', 'piper-ort', 'okur' ) );
+t( 'geçersiz kimlik varsayılana düşer', YS_Models::valid_id( '../x' ), 'piper-sherpa' );
+t( 'tür eşlemesi', array( YS_Models::kind( 'piper-sherpa' ), YS_Models::kind( 'piper-ort' ), YS_Models::kind( 'okur' ) ), array( 'sherpa', 'piper-ort', 'okur' ) );
+foreach ( YS_Models::all() as $id => $m ) {
+	foreach ( array( 'label', 'kind', 'tag', 'size', 'description', 'license', 'url' ) as $key ) {
+		t( "$id: $key dolu", is_string( $m[ $key ] ) && '' !== $m[ $key ] );
+	}
+	t( "$id: manifest adresi https ve etiketli", 0 === strpos( YS_Models::manifest_url( $id ), 'https://github.com/kinefi/seslendir/releases/download/' . $m['tag'] . '/' ) );
+}
+t( 'her modelin ayrı klasörü', count( array_unique( array_map( array( 'YS_Settings', 'engine_dir' ), YS_Models::ids() ) ) ), 3 );
+t( 'url modele göre', false !== strpos( YS_Settings::engine_url( 'piper-ort' ), '/seslendir-motor/piper-ort/' ) );
+t( 'durum modele göre: okur dosya listesi', array_keys( YS_Settings::engine_status( 'okur' )['files'] ), YS_Settings::engine_allowed_names( 'okur' ) );
+t( 'durum: boş klasör hazır değil', YS_Settings::engine_status( 'okur' )['ready'], false );
+$s = YS_Settings::sanitize( array( 'model' => 'okur' ) );
+t( 'ayar: geçerli model kaydedilir', $s['model'], 'okur' );
+$s = YS_Settings::sanitize( array( 'model' => '../../etc' ) );
+t( 'ayar: geçersiz model varsayılana düşer', $s['model'], 'piper-sherpa' );
+$s = YS_Settings::sanitize( array() );
+t( 'ayar: model yoksa varsayılan', $s['model'], 'piper-sherpa' );
 
 echo $fail ? "$fail / $n FAILED\n" : "OK ($n assertions): " . basename( __FILE__ ) . "\n";
 exit( $fail ? 1 : 0 );

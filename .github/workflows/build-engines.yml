@@ -1,0 +1,378 @@
+name: Build engines
+
+# Eklentinin desteklediği tüm ses modellerinin paketlerini üretir, her birini başsız Chromium'da gerçekten
+# Türkçe konuştuğunu doğrulayarak sınar ve kendi GitHub sürümü olarak yayımlar. Eklentinin Ayarlar'da seçilen
+# modele göre çalışan "Otomatik indir ve kur" düğmesi bu sürümleri indirir.
+#
+#   GitHub → Actions → "Build engines" → Run workflow   (models = all: üçü birden)
+#
+# Sürüm etiketleri includes/class-models.php içindeki 'tag' değerleriyle aynıdır:
+#   motor-piper-sherpa   Piper · fettah, sherpa-onnx (WebAssembly derlemesi, uzun sürer)
+#   motor-piper-ort      Piper · fettah, ONNX Runtime Web (derleme yok)
+#   motor-okur           Okur, ONNX Runtime Web (Rust ön yüzü derlenir)
+# Bir model başarısız olursa diğerleri yine de yayımlanır; yalnızca testi geçen paket yayımlanır.
+
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: 'Hangi model(ler) üretilsin'
+        type: choice
+        default: 'all'
+        options:
+          - all
+          - piper-sherpa
+          - piper-ort
+          - okur
+      ort_version:
+        description: 'onnxruntime-web sürümü (npm) — piper-ort ve okur'
+        default: '1.22.0'
+        required: true
+      sherpa_ref:
+        description: 'piper-sherpa: sherpa-onnx dalı ya da etiketi'
+        default: 'master'
+        required: true
+      emsdk_version:
+        description: 'piper-sherpa: Emscripten SDK (sherpa-onnx CI ile aynı; "latest" derlemeyi bozabilir)'
+        default: '4.0.23'
+        required: true
+      sherpa_voice_repo:
+        description: 'piper-sherpa: Hugging Face ses deposu (.onnx + tokens.txt)'
+        default: 'csukuangfj/vits-piper-tr_TR-fettah-medium'
+        required: true
+      ort_voice_repo:
+        description: 'piper-ort: Hugging Face ses deposu'
+        default: 'csukuangfj/vits-piper-tr_TR-fettah-medium'
+        required: true
+      ort_voice_onnx:
+        description: 'piper-ort: model dosyası (speaches-ai deposunda model.onnx)'
+        default: 'tr_TR-fettah-medium.onnx'
+        required: true
+      ort_voice_config:
+        description: 'piper-ort: yapılandırma dosyası (speaches-ai deposunda config.json)'
+        default: 'tr_TR-fettah-medium.onnx.json'
+        required: true
+      okur_ref:
+        description: 'okur: okur-tts deposundan derlenecek git sürümü'
+        default: '0889eda'
+        required: true
+      okur_model_repo:
+        description: 'okur: Hugging Face model deposu (onnx/config.json ve grafikler)'
+        default: 'ahakan/okur-tts'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  piper-sherpa:
+    name: Piper · fettah (sherpa-onnx)
+    if: ${{ inputs.models == 'all' || inputs.models == 'piper-sherpa' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency:
+      group: build-engines-piper-sherpa
+      cancel-in-progress: false
+    env:
+      TAG: motor-piper-sherpa
+      SHERPA_REF: ${{ inputs.sherpa_ref }}
+      EMSDK_VERSION: ${{ inputs.emsdk_version }}
+      VOICE_REPO: ${{ inputs.sherpa_voice_repo }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+
+      - name: Install Emscripten
+        run: |
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$HOME/emsdk"
+          cd "$HOME/emsdk"
+          ./emsdk install "$EMSDK_VERSION"
+          ./emsdk activate "$EMSDK_VERSION"
+
+      - name: Get sherpa-onnx
+        run: git clone --depth 1 --branch "$SHERPA_REF" https://github.com/k2-fsa/sherpa-onnx.git sherpa-onnx
+
+      - name: Get the Turkish voice
+        run: |
+          git lfs install
+          git clone --depth 1 "https://huggingface.co/${VOICE_REPO}" voice
+          ls -la voice
+          test -f voice/tokens.txt || { echo "::error::Ses deposunda tokens.txt yok."; exit 1; }
+
+      - name: Stage the voice as the WebAssembly TTS assets
+        run: |
+          ASSETS=sherpa-onnx/wasm/tts/assets
+          mkdir -p "$ASSETS"
+          find "$ASSETS" -mindepth 1 -not -name 'README.md' -exec rm -rf {} +
+          MODEL="$(ls voice/*.onnx | head -n1)"
+          echo "model: $MODEL"
+          cp "$MODEL" "$ASSETS/model.onnx"
+          cp voice/tokens.txt "$ASSETS/tokens.txt"
+          ls -la "$ASSETS"
+          if ! grep -q "model.onnx" sherpa-onnx/wasm/tts/sherpa-onnx-tts.js; then
+            echo "::warning::sherpa-onnx-tts.js varsayılan yapılandırması model.onnx'i göstermiyor olabilir; duman testi bunu yakalar."
+          fi
+
+      - name: Get the piper-phonemize WebAssembly bundle (text frontend)
+        run: |
+          # Güncel sherpa-onnx metni kendisi fonemleştirmez; derleme bu paketin varlığını ister.
+          # Eklenti de bu paketi tarayıcıda çalıştırır (assets/ys-phonemize-worker.js).
+          cd sherpa-onnx/wasm/tts
+          curl -fsSL -o pp.zip https://github.com/csukuangfj/piper-phonemize/releases/download/wasm/piper-phonemize-v1.6.1-wasm-browser.zip
+          echo "31851c373df9761fb1eb3f000abf939e1eec7e63b1821ca6a0c4b3902c7b9e46  pp.zip" | sha256sum -c -
+          unzip -q pp.zip
+          mv browser piper-phonemize
+          rm pp.zip
+          ls -la piper-phonemize
+
+      - name: Build the WebAssembly TTS
+        run: |
+          source "$HOME/emsdk/emsdk_env.sh"
+          cd sherpa-onnx
+          ls build-wasm*tts*.sh
+          ./build-wasm-simd-tts.sh
+
+      - name: Collect the engine files
+        run: |
+          mkdir dist
+          for f in sherpa-onnx-tts.js sherpa-onnx-wasm-main-tts.js sherpa-onnx-wasm-main-tts.wasm sherpa-onnx-wasm-main-tts.data; do
+            SRC="$(find sherpa-onnx -path '*build-wasm*' -name "$f" -print -quit)"
+            if [ -z "$SRC" ] && [ "$f" = "sherpa-onnx-tts.js" ]; then SRC="sherpa-onnx/wasm/tts/sherpa-onnx-tts.js"; fi
+            test -n "$SRC" -a -f "$SRC" || { echo "::error::Derleme çıktısında $f bulunamadı."; exit 1; }
+            cp "$SRC" "dist/$f"
+          done
+          for f in piper-phonemize.js piper-phonemize-wasm-main.js piper-phonemize-wasm-main.wasm piper-phonemize-wasm-main.data; do
+            test -f "sherpa-onnx/wasm/tts/piper-phonemize/$f" || { echo "::error::Fonemleştirici paketinde $f yok."; exit 1; }
+            cp "sherpa-onnx/wasm/tts/piper-phonemize/$f" "dist/$f"
+          done
+          ls -la dist
+
+      - name: Add the optional MP3 encoder (lamejs, LGPL)
+        run: |
+          mkdir lame && cd lame
+          npm pack lamejs --silent || true
+          tar -xzf lamejs-*.tgz 2>/dev/null || true
+          LAME="$(find . -name 'lame.min.js' -print -quit)"
+          if [ -n "$LAME" ]; then cp "$LAME" ../dist/lame.min.js; echo "lame.min.js eklendi"; else echo "::warning::lame.min.js bulunamadı; ses WAV olarak kaydedilecek."; fi
+
+      - name: Smoke test (headless Chromium speaks Turkish with the pack)
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          node tools/engine-smoke.mjs dist sherpa
+
+      - name: Manifest and manual-install zip
+        run: |
+          python3 tools/make-engine-manifest.py dist "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" --engine sherpa --voice "$(basename "$VOICE_REPO")"
+          (cd dist && zip -q ../seslendir-motor-piper-sherpa.zip sherpa-onnx-* piper-phonemize* $(ls lame.min.js 2>/dev/null))
+          mv seslendir-motor-piper-sherpa.zip dist/
+          ls -la dist
+          cat dist/engine-manifest.json
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Seslendir modeli: Piper · fettah (sherpa-onnx ${SHERPA_REF}, ${VOICE_REPO}). Eklentinin Kurulum sekmesindeki Otomatik indir düğmesi bu dosyaları indirir; seslendir-motor-piper-sherpa.zip elle kurulum içindir."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --title "Model: Piper · fettah, sherpa-onnx ($TAG)" --notes "$NOTES" --latest=false
+          fi
+
+  piper-ort:
+    name: Piper · fettah (ONNX Runtime)
+    if: ${{ inputs.models == 'all' || inputs.models == 'piper-ort' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: build-engines-piper-ort
+      cancel-in-progress: false
+    env:
+      TAG: motor-piper-ort
+      ORT_VERSION: ${{ inputs.ort_version }}
+      VOICE_REPO: ${{ inputs.ort_voice_repo }}
+      VOICE_ONNX: ${{ inputs.ort_voice_onnx }}
+      VOICE_CONFIG: ${{ inputs.ort_voice_config }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+
+      - name: Get ONNX Runtime Web
+        run: |
+          mkdir -p dist ort && cd ort
+          npm pack "onnxruntime-web@${ORT_VERSION}" --silent
+          tar -xzf onnxruntime-web-*.tgz
+          ls package/dist | head -50
+          pick() { find package/dist -maxdepth 1 -name "$1" -print -quit; }
+          JS="$(pick 'ort.wasm.min.js')"
+          MJS="$(pick 'ort-wasm-simd-threaded.mjs')"
+          WASM="$(pick 'ort-wasm-simd-threaded.wasm')"
+          test -n "$JS" -a -n "$MJS" -a -n "$WASM" || { echo "::error::onnxruntime-web paketinde beklenen dosyalar yok (ort.wasm.min.js, ort-wasm-simd-threaded.mjs/.wasm). dist listesi yukarıda."; exit 1; }
+          cp "$JS" ../dist/ort.wasm.min.js
+          cp "$MJS" ../dist/ort-wasm-simd-threaded.js
+          cp "$WASM" ../dist/ort-wasm-simd-threaded.wasm
+
+      - name: Get the Piper voice
+        run: |
+          BASE="https://huggingface.co/${VOICE_REPO}/resolve/main"
+          curl -fL --retry 3 -o dist/voice.onnx "${BASE}/${VOICE_ONNX}"
+          curl -fL --retry 3 -o dist/voice.onnx.json "${BASE}/${VOICE_CONFIG}"
+          python3 - <<'PY'
+          import json
+          c = json.load(open('dist/voice.onnx.json', encoding='utf-8'))
+          assert 'phoneme_id_map' in c and '^' in c['phoneme_id_map'], 'phoneme_id_map eksik'
+          print('örnekleme hızı:', c.get('audio', {}).get('sample_rate'), 'konuşmacı:', c.get('num_speakers'), 'espeak:', c.get('espeak', {}).get('voice'))
+          PY
+          ls -la dist
+
+      - name: Get the piper-phonemize WebAssembly bundle
+        run: |
+          curl -fsSL -o pp.zip https://github.com/csukuangfj/piper-phonemize/releases/download/wasm/piper-phonemize-v1.6.1-wasm-browser.zip
+          echo "31851c373df9761fb1eb3f000abf939e1eec7e63b1821ca6a0c4b3902c7b9e46  pp.zip" | sha256sum -c -
+          unzip -q pp.zip
+          for f in piper-phonemize.js piper-phonemize-wasm-main.js piper-phonemize-wasm-main.wasm piper-phonemize-wasm-main.data; do
+            test -f "browser/$f" || { echo "::error::Fonemleştirici paketinde $f yok."; exit 1; }
+            cp "browser/$f" "dist/$f"
+          done
+
+      - name: Add the optional MP3 encoder (lamejs, LGPL)
+        run: |
+          mkdir lame && cd lame
+          npm pack lamejs --silent || true
+          tar -xzf lamejs-*.tgz 2>/dev/null || true
+          LAME="$(find . -name 'lame.min.js' -print -quit)"
+          if [ -n "$LAME" ]; then cp "$LAME" ../dist/lame.min.js; echo "lame.min.js eklendi"; else echo "::warning::lame.min.js bulunamadı; ses WAV olarak kaydedilecek."; fi
+
+      - name: Smoke test (headless Chromium speaks Turkish with the pack)
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          node tools/engine-smoke.mjs dist piper-ort
+
+      - name: Manifest and manual-install zip
+        run: |
+          python3 tools/make-engine-manifest.py dist "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" --engine piper-ort --voice "$(basename "$VOICE_REPO")"
+          (cd dist && zip -q ../seslendir-motor-piper-ort.zip ort* voice.onnx voice.onnx.json piper-phonemize* $(ls lame.min.js 2>/dev/null))
+          mv seslendir-motor-piper-ort.zip dist/
+          ls -la dist
+          cat dist/engine-manifest.json
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Seslendir motor paketi (ONNX Runtime Web ${ORT_VERSION} + Piper, ${VOICE_REPO}). wp-config.php içinde define( 'YS_ENGINE_KIND', 'piper-ort' ); ile kullanılır; seslendir-motor-piper-ort.zip elle kurulum içindir."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --title "Model: Piper · fettah, ONNX Runtime ($TAG)" --notes "$NOTES" --latest=false
+          fi
+
+  okur:
+    name: Okur (ONNX Runtime)
+    if: ${{ inputs.models == 'all' || inputs.models == 'okur' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: build-engines-okur
+      cancel-in-progress: false
+    env:
+      TAG: motor-okur
+      ORT_VERSION: ${{ inputs.ort_version }}
+      OKUR_REF: ${{ inputs.okur_ref }}
+      MODEL_REPO: ${{ inputs.okur_model_repo }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+
+      - name: Get ONNX Runtime Web
+        run: |
+          mkdir -p dist ort && cd ort
+          npm pack "onnxruntime-web@${ORT_VERSION}" --silent
+          tar -xzf onnxruntime-web-*.tgz
+          ls package/dist | head -50
+          pick() { find package/dist -maxdepth 1 -name "$1" -print -quit; }
+          JS="$(pick 'ort.wasm.min.js')"
+          MJS="$(pick 'ort-wasm-simd-threaded.mjs')"
+          WASM="$(pick 'ort-wasm-simd-threaded.wasm')"
+          test -n "$JS" -a -n "$MJS" -a -n "$WASM" || { echo "::error::onnxruntime-web paketinde beklenen dosyalar yok (ort.wasm.min.js, ort-wasm-simd-threaded.mjs/.wasm). dist listesi yukarıda."; exit 1; }
+          cp "$JS" ../dist/ort.wasm.min.js
+          cp "$MJS" ../dist/ort-wasm-simd-threaded.js
+          cp "$WASM" ../dist/ort-wasm-simd-threaded.wasm
+
+      - name: Build the Okur text frontend (Rust to WebAssembly)
+        run: |
+          rustup update stable
+          rustup target add wasm32-unknown-unknown
+          git clone https://github.com/ahmethakanbesel/okur-tts.git okur-src
+          git -C okur-src checkout "$OKUR_REF"
+          git -C okur-src log -1 --format='okur-tts %h %s'
+          cargo build --release --lib --target wasm32-unknown-unknown --manifest-path okur-src/frontend-rs/Cargo.toml
+          WASM="$(find okur-src/frontend-rs/target/wasm32-unknown-unknown/release -maxdepth 1 -name '*.wasm' -print -quit)"
+          test -n "$WASM" || { echo "::error::Rust derlemesi .wasm üretmedi."; exit 1; }
+          cp "$WASM" dist/okur-frontend.wasm
+          ls -la dist/okur-frontend.wasm
+
+      - name: Get the Okur ONNX graphs
+        run: |
+          BASE="https://huggingface.co/${MODEL_REPO}/resolve/main/onnx"
+          curl -fL --retry 3 -o dist/okur-config.json "${BASE}/config.json"
+          python3 - <<'PY'
+          import json, subprocess, sys
+          c = json.load(open('dist/okur-config.json', encoding='utf-8'))
+          for key in ('text', 'sample', 'decoder'):
+              assert key in c['files'], f'config.files.{key} yok: {c["files"]}'
+          for key in ('symbols', 'times', 'latent_dim', 'sample_rate'):
+              assert key in c, f'config.{key} yok'
+          print('ses:', c.get('voice'), 'örnekleme hızı:', c['sample_rate'], 'adım:', len(c['times']), 'gizli boyut:', c['latent_dim'])
+          import os
+          base = f"https://huggingface.co/{os.environ['MODEL_REPO']}/resolve/main/onnx"
+          for key in ('text', 'sample', 'decoder'):
+              r = subprocess.run(['curl', '-fL', '--retry', '3', '-o', f'dist/okur-{key}.onnx', f"{base}/{c['files'][key]}"])
+              if r.returncode != 0:
+                  sys.exit(f'{key} grafiği indirilemedi: {c["files"][key]}')
+          PY
+          ls -la dist
+
+      - name: Add the optional MP3 encoder (lamejs, LGPL)
+        run: |
+          mkdir lame && cd lame
+          npm pack lamejs --silent || true
+          tar -xzf lamejs-*.tgz 2>/dev/null || true
+          LAME="$(find . -name 'lame.min.js' -print -quit)"
+          if [ -n "$LAME" ]; then cp "$LAME" ../dist/lame.min.js; echo "lame.min.js eklendi"; else echo "::warning::lame.min.js bulunamadı; ses WAV olarak kaydedilecek."; fi
+
+      - name: Smoke test (headless Chromium speaks Turkish with the pack)
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          node tools/engine-smoke.mjs dist okur
+
+      - name: Manifest and manual-install zip
+        run: |
+          python3 tools/make-engine-manifest.py dist "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" --engine okur --voice "okur"
+          (cd dist && zip -q ../seslendir-motor-okur.zip ort* okur-* $(ls lame.min.js 2>/dev/null))
+          mv seslendir-motor-okur.zip dist/
+          ls -la dist
+          cat dist/engine-manifest.json
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Yazıyı Seslendir motor paketi: Okur TTS (okur-tts ${OKUR_REF}, ağırlıklar ${MODEL_REPO}) + ONNX Runtime Web ${ORT_VERSION}. Kod Apache-2.0, ağırlıklar CC BY 4.0: atıf 'okur' ve eğitim derlemleri (bkz. https://github.com/ahmethakanbesel/okur-tts/blob/main/NOTICE). wp-config.php içinde define( 'YS_ENGINE_KIND', 'okur' ); ile kullanılır; seslendir-motor-okur.zip elle kurulum içindir."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --title "Model: Okur ($TAG)" --notes "$NOTES" --latest=false
+          fi

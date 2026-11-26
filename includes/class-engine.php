@@ -21,12 +21,34 @@ class YS_Engine {
 	const LOCK     = 'ys_engine_lock';
 	const CACHE    = 'ys_engine_manifest';
 
-	const MANIFEST_DEFAULT     = 'https://github.com/kinefi/seslendir/releases/download/engine-1/engine-manifest.json';
-	const MANIFEST_DEFAULT_ORT = 'https://github.com/kinefi/seslendir/releases/download/engine-2/engine-manifest.json';
-	const MANIFEST_DEFAULT_OKUR = 'https://github.com/kinefi/seslendir/releases/download/engine-3/engine-manifest.json';
 
 	public static function init() {
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
+		add_action( 'admin_init', array( __CLASS__, 'migrate_legacy' ) );
+	}
+
+	/**
+	 * Eski sürümler dosyaları uploads/seslendir-motor/ köküne koyuyordu; şimdi her modelin alt klasörü var.
+	 * Kökteki sherpa dosyaları (zaten indirilmişse) Piper·sherpa klasörüne taşınır; yeniden indirmek gerekmez.
+	 */
+	public static function migrate_legacy() {
+		if ( get_option( 'ys_engine_migrated' ) ) {
+			return;
+		}
+		update_option( 'ys_engine_migrated', 1, false );
+		$root = YS_Settings::engine_root();
+		$to   = YS_Settings::engine_dir( 'piper-sherpa' );
+		if ( ! is_dir( $root ) ) {
+			return;
+		}
+		foreach ( YS_Settings::engine_allowed_names( 'sherpa' ) as $name ) {
+			$from = $root . '/' . $name;
+			if ( is_file( $from ) && ! is_file( $to . '/' . $name ) ) {
+				wp_mkdir_p( $to );
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- aynı klasör ağacında, yalnızca izinli adlar.
+				@rename( $from, $to . '/' . $name );
+			}
+		}
 	}
 
 	public static function routes() {
@@ -83,20 +105,8 @@ class YS_Engine {
 		return in_array( strtolower( $p['host'] ), self::allowed_hosts(), true );
 	}
 
-	/** Etkin motor türünün varsayılan manifest adresi. */
-	private static function default_manifest() {
-		switch ( YS_Settings::engine_kind() ) {
-			case 'okur':
-				return self::MANIFEST_DEFAULT_OKUR;
-			case 'piper-ort':
-				return self::MANIFEST_DEFAULT_ORT;
-			default:
-				return self::MANIFEST_DEFAULT;
-		}
-	}
-
 	public static function manifest_url(): string {
-		$url = defined( 'YS_ENGINE_MANIFEST_URL' ) ? (string) constant( 'YS_ENGINE_MANIFEST_URL' ) : self::default_manifest();
+		$url = defined( 'YS_ENGINE_MANIFEST_URL' ) ? (string) constant( 'YS_ENGINE_MANIFEST_URL' ) : YS_Models::manifest_url( YS_Settings::model() );
 		return (string) apply_filters( 'ys_engine_manifest_url', $url );
 	}
 
@@ -254,9 +264,14 @@ class YS_Engine {
 	/* ---------- Manifest ---------- */
 
 	/** @return array|WP_Error Doğrulanmış manifest. */
+	/** Manifest önbelleği modele özgüdür; model değişince eskisi dönmesin. */
+	private static function cache_key() {
+		return self::CACHE . '_' . md5( YS_Settings::model() . '|' . self::manifest_url() );
+	}
+
 	public static function fetch_manifest( bool $force = false ) {
 		if ( ! $force ) {
-			$cached = get_transient( self::CACHE );
+			$cached = get_transient( self::cache_key() );
 			if ( is_array( $cached ) && ! empty( $cached['ok'] ) ) {
 				return $cached;
 			}
@@ -270,7 +285,7 @@ class YS_Engine {
 			array(
 				'timeout'    => 20,
 				'redirection' => 5,
-				'user-agent' => 'YaziyiSeslendir/' . YS_VERSION,
+				'user-agent' => 'Seslendir/' . YS_VERSION,
 			)
 		);
 		if ( is_wp_error( $res ) ) {
@@ -278,7 +293,7 @@ class YS_Engine {
 		}
 		$code = (int) wp_remote_retrieve_response_code( $res );
 		if ( 404 === $code ) {
-			return new WP_Error( 'ys_manifest_missing', 'Motor paketi henüz yayımlanmamış (engine-manifest.json bulunamadı). Depodaki "Build engine pack" iş akışını bir kez çalıştırın ya da paketi elle yükleyin.', array( 'status' => 404 ) );
+			return new WP_Error( 'ys_manifest_missing', 'Motor paketi henüz yayımlanmamış (engine-manifest.json bulunamadı). Depodaki "Build engines" iş akışını bir kez çalıştırın ya da paketi elle yükleyin.', array( 'status' => 404 ) );
 		}
 		if ( 200 !== $code ) {
 			return new WP_Error( 'ys_manifest_http', 'Paket bilgisi alınamadı (HTTP ' . $code . ').', array( 'status' => 502 ) );
@@ -287,7 +302,7 @@ class YS_Engine {
 		if ( ! $m['ok'] ) {
 			return new WP_Error( 'ys_manifest_bad', $m['error'], array( 'status' => 502 ) );
 		}
-		set_transient( self::CACHE, $m, 10 * MINUTE_IN_SECONDS );
+		set_transient( self::cache_key(), $m, 10 * MINUTE_IN_SECONDS );
 		return $m;
 	}
 
@@ -375,7 +390,7 @@ class YS_Engine {
 				'stream'              => true,
 				'filename'            => $tmp,
 				'limit_response_size' => self::CHUNK + 1048576,
-				'user-agent'          => 'YaziyiSeslendir/' . YS_VERSION,
+				'user-agent'          => 'Seslendir/' . YS_VERSION,
 				'headers'             => array( 'Range' => 'bytes=' . $job['start'] . '-' . $end ),
 			)
 		);

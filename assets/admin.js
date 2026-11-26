@@ -1,5 +1,5 @@
 /*
- * Yazıyı Seslendir: yönetim sayfası.
+ * Seslendir: yönetim sayfası.
  * Liste, durum, toplu üretim, önizleme ve kilitleyici üretim penceresi.
  * Sesler bu tarayıcıda, yerel WASM motoruyla üretilir; sunucuya yalnızca hazır dosya gider.
  */

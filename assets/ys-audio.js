@@ -1,5 +1,5 @@
 /*
- * Yazıyı Seslendir: saf ses işlevleri (DOM'a bağlı değil, Node'da test edilir).
+ * Seslendir: saf ses işlevleri (DOM'a bağlı değil, Node'da test edilir).
  * Float32 örnekler -> Int16, sessizlik ekleme, WAV başlığı, isteğe bağlı MP3.
  */
 ( function ( root, factory ) {

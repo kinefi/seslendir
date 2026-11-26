@@ -12,7 +12,8 @@ class YS_Frontend {
 
 	public static function init() {
 		add_filter( 'the_content', array( __CLASS__, 'prepend' ), 20 );
-		add_shortcode( 'yaziyi_seslendir', array( __CLASS__, 'shortcode' ) );
+		add_shortcode( 'seslendir', array( __CLASS__, 'shortcode' ) );
+		add_shortcode( 'yaziyi_seslendir', array( __CLASS__, 'shortcode' ) ); // Eski ad: geriye dönük uyumluluk.
 	}
 
 	public static function prepend( $content ) {
@@ -27,7 +28,7 @@ class YS_Frontend {
 	}
 
 	public static function shortcode( $atts ) {
-		$atts = shortcode_atts( array( 'id' => 0 ), $atts, 'yaziyi_seslendir' );
+		$atts = shortcode_atts( array( 'id' => 0 ), $atts, 'seslendir' );
 		$post = $atts['id'] ? get_post( (int) $atts['id'] ) : get_post();
 		if ( ! $post ) {
 			return '';

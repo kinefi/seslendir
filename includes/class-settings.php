@@ -22,8 +22,9 @@ class YS_Settings {
 			'autoinsert'  => 1,
 			'show_column' => 1,
 			'confirm'     => 1, // Tek yazı üretiminde kaydetmeden önce dinletip onay iste.
-			'label'       => 'Yazıyı Seslendir',
+			'label'       => 'Yazıyı dinleyin',
 			'max_mb'      => 40,
+			'model'       => 'piper-sherpa',
 			'voice_tag'   => 'fettah-1',
 		);
 	}
@@ -93,6 +94,8 @@ class YS_Settings {
 		$label        = isset( $in['label'] ) ? sanitize_text_field( (string) $in['label'] ) : '';
 		$out['label'] = '' === $label ? $def['label'] : mb_substr( $label, 0, 60 );
 
+		$out['model'] = YS_Models::valid_id( isset( $in['model'] ) ? (string) $in['model'] : $def['model'] );
+
 		$tag              = isset( $in['voice_tag'] ) ? preg_replace( '/[^A-Za-z0-9._-]/', '', (string) $in['voice_tag'] ) : '';
 		$out['voice_tag'] = '' === $tag ? $def['voice_tag'] : substr( $tag, 0, 40 );
 
@@ -101,18 +104,14 @@ class YS_Settings {
 
 	/* ---------- Ses motoru dosyaları ---------- */
 
-	/** Desteklenen motor türleri. */
-	const ENGINE_KINDS = array( 'sherpa', 'piper-ort', 'okur' );
+	/** Seçili model kimliği (Ayarlar → Ses modeli). ys_model süzgeci ile geçersiz kılınabilir. */
+	public static function model() {
+		return YS_Models::valid_id( (string) apply_filters( 'ys_model', (string) self::get( 'model' ) ) );
+	}
 
-	/**
-	 * Etkin motor türü: "sherpa" (sherpa-onnx WASM), "piper-ort" (ONNX Runtime Web + Piper) ya da
-	 * "okur" (ONNX Runtime Web + Okur TTS).
-	 * wp-config.php içinde YS_ENGINE_KIND ile ya da ys_engine_kind süzgeciyle değiştirilir.
-	 */
+	/** Seçili modelin motor türü: "sherpa", "piper-ort" ya da "okur". */
 	public static function engine_kind() {
-		$kind = defined( 'YS_ENGINE_KIND' ) ? (string) constant( 'YS_ENGINE_KIND' ) : 'sherpa';
-		$kind = (string) apply_filters( 'ys_engine_kind', $kind );
-		return in_array( $kind, self::ENGINE_KINDS, true ) ? $kind : 'sherpa';
+		return YS_Models::kind( self::model() );
 	}
 
 	/** Zorunlu motor dosyaları (etkin motor türüne göre). */
@@ -165,39 +164,47 @@ class YS_Settings {
 		return array( 'lame.min.js' );
 	}
 
-	public static function engine_allowed_names() {
-		return array_merge( self::engine_required(), self::engine_optional() );
+	public static function engine_allowed_names( $kind = null ) {
+		return array_merge( self::engine_required( $kind ), self::engine_optional() );
 	}
 
-	public static function engine_dir() {
+	/** Motor klasörünün kökü: uploads/seslendir-motor. Her modelin kendi alt klasörü vardır. */
+	public static function engine_root() {
 		$u = wp_upload_dir();
 		return rtrim( $u['basedir'], '/\\' ) . '/seslendir-motor';
 	}
 
-	public static function engine_url() {
+	public static function engine_dir( $model = null ) {
+		return self::engine_root() . '/' . YS_Models::valid_id( null === $model ? self::model() : $model );
+	}
+
+	public static function engine_url( $model = null ) {
 		$u = wp_upload_dir();
-		return rtrim( $u['baseurl'], '/' ) . '/seslendir-motor/';
+		return rtrim( $u['baseurl'], '/' ) . '/seslendir-motor/' . YS_Models::valid_id( null === $model ? self::model() : $model ) . '/';
 	}
 
 	/**
 	 * @return array{ready:bool,files:array,lame:bool}
 	 */
-	public static function engine_status() {
-		$dir   = self::engine_dir();
-		$files = array();
-		$ready = true;
-		foreach ( self::engine_allowed_names() as $name ) {
+	public static function engine_status( $model = null ) {
+		$model    = YS_Models::valid_id( null === $model ? self::model() : $model );
+		$kind     = YS_Models::kind( $model );
+		$dir      = self::engine_dir( $model );
+		$required = self::engine_required( $kind );
+		$files    = array();
+		$ready    = true;
+		foreach ( self::engine_allowed_names( $kind ) as $name ) {
 			$path           = $dir . '/' . $name;
 			$size           = is_file( $path ) ? (int) filesize( $path ) : 0;
 			$files[ $name ] = $size;
-			if ( 0 === $size && in_array( $name, self::engine_required(), true ) ) {
+			if ( 0 === $size && in_array( $name, $required, true ) ) {
 				$ready = false;
 			}
 		}
 		return array(
 			'ready' => $ready,
 			'files' => $files,
-			'lame'  => $files['lame.min.js'] > 0,
+			'lame'  => ( $files['lame.min.js'] ?? 0 ) > 0,
 		);
 	}
 

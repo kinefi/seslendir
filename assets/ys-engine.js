@@ -1,5 +1,5 @@
 /*
- * Yazıyı Seslendir: yerel ses motorunu yükler.
+ * Seslendir: yerel ses motorunu yükler.
  *   - sherpa-onnx (WASM) sesi üretir (ana iş parçacığı),
  *   - piper-phonemize (WASM, espeak-ng) metni fonemlere çevirir (ys-phonemize-worker.js).
  * Hem yönetim sayfası hem de CI'daki duman testi (tools/engine-smoke.mjs) bu dosyayı kullanır;

@@ -1,6 +1,7 @@
 <?php
 // Otomatik motor indirmenin saf mantığı: manifest doğrulama, adres izni, Range başlığı, indirme planı.
 require __DIR__ . '/wp_stubs.php';
+require dirname( __DIR__ ) . '/includes/class-models.php';
 require dirname( __DIR__ ) . '/includes/class-settings.php';
 require dirname( __DIR__ ) . '/includes/class-engine.php';
 

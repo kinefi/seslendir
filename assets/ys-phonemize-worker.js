@@ -1,5 +1,5 @@
 /*
- * Yazıyı Seslendir: metni fonemlere çeviren Web Worker (piper-phonemize WASM, espeak-ng).
+ * Seslendir: metni fonemlere çeviren Web Worker (piper-phonemize WASM, espeak-ng).
  * sherpa-onnx artık metni kendisi fonemleştirmiyor; hazır fonem kodlarını bekliyor. Bu iş,
  * ana iş parçacığındaki sherpa modülüyle "Module" adını paylaşmamak için ayrı bir worker'da yapılır.
  *
@@ -32,11 +32,55 @@ self.Module = {
 	}
 };
 
+/**
+ * Motor klasörünün adresini doğrular: yalnızca bu worker ile aynı kökende ve yalnızca harf/rakam/_ - . / içeren,
+ * ".." barındırmayan, "/" ile biten bir yol kabul edilir. Dönüş değeri, güvenilir kök + doğrulanmış yoldan kurulur;
+ * ham girdi hiçbir zaman doğrudan importScripts'e verilmez. Geçersizse null.
+ */
+function safeBase( raw ) {
+	var url;
+	try {
+		url = new URL( String( raw ), self.location.href );
+	} catch ( err ) {
+		return null;
+	}
+	if ( url.origin !== self.location.origin ) {
+		return null;
+	}
+	var path = url.pathname;
+	if ( ! /^\/[A-Za-z0-9_\-./]*\/$/.test( path ) || path.indexOf( '..' ) !== -1 ) {
+		return null;
+	}
+	return self.location.origin + path;
+}
+
+/** "?v=1.3.0" biçimindeki sürüm eki; başka her şey boş sayılır. */
+function safeVer( raw ) {
+	var v = String( raw || '' );
+	return /^\?v=[A-Za-z0-9._-]{1,40}$/.test( v ) ? v : '';
+}
+
+var ysStarted = false;
+
 self.onmessage = function ( e ) {
+	// Bu worker'a yalnızca onu oluşturan sayfa ileti gönderebilir (origin dedicated worker'larda boştur);
+	// başka bir köken görünürse yok sayılır.
+	if ( e.origin && e.origin !== self.location.origin ) {
+		return;
+	}
 	var d = e.data || {};
 	if ( 'init' === d.type ) {
-		ysBase = String( d.base || '' );
-		ysVer = String( d.v || '' );
+		if ( ysStarted ) {
+			return;
+		}
+		var base = safeBase( d.base );
+		if ( null === base ) {
+			self.postMessage( { type: 'error', message: 'Motor klasörü bu siteyle aynı kökende olmalıdır.' } );
+			return;
+		}
+		ysStarted = true;
+		ysBase = base;
+		ysVer = safeVer( d.v );
 		try {
 			self.importScripts( ysBase + 'piper-phonemize.js' + ysVer, ysBase + 'piper-phonemize-wasm-main.js' + ysVer );
 		} catch ( err ) {

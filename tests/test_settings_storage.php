@@ -1,6 +1,7 @@
 <?php
 // Ayar temizleme, ses biçimi doğrulama ve imza (hash) testleri.
 require __DIR__ . '/wp_stubs.php';
+require dirname( __DIR__ ) . '/includes/class-models.php';
 require dirname( __DIR__ ) . '/includes/class-settings.php';
 require dirname( __DIR__ ) . '/includes/class-normalizer-tr.php';
 require dirname( __DIR__ ) . '/includes/class-storage.php';
@@ -37,7 +38,7 @@ t( 'etiket etiketsiz', $s['label'], 'Dinle' );
 t( 'ses etiketi temiz', $s['voice_tag'], 'Ses1..x' );
 t( 'kutular kapalı', array( $s['read_title'], $s['autoinsert'], $s['show_column'], $s['confirm'] ), array( 0, 0, 0, 0 ) );
 $e = YS_Settings::sanitize( array() );
-t( 'boş etiket varsayılan', $e['label'], 'Yazıyı Seslendir' );
+t( 'boş etiket varsayılan', $e['label'], 'Yazıyı dinleyin' );
 t( 'varsayılan tür yok sayılmaz', YS_Settings::defaults()['post_types'], array( 'post' ) );
 
 update_option( YS_Settings::OPT, array( 'post_types' => array( 'post', 'yok' ) ) );

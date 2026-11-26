@@ -2,7 +2,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Yönetim: sol menüde "Yazıyı Seslendir" sayfası (Yazılar / Kurulum / Ayarlar)
+ * Yönetim: sol menüde "Seslendir" sayfası (Yazılar / Kurulum / Ayarlar)
  * ve Yazılar listesindeki salt-okunur "Ses" sütunu.
  * Başka hiçbir yönetim ekranı değiştirilmez.
  */
@@ -21,8 +21,8 @@ class YS_Admin {
 
 	public static function menu() {
 		self::$hook = (string) add_menu_page(
-			'Yazıyı Seslendir',
-			'Yazıyı Seslendir',
+			'Seslendir',
+			'Seslendir',
 			'edit_posts',
 			self::SLUG,
 			array( __CLASS__, 'render' ),
@@ -111,7 +111,7 @@ class YS_Admin {
 			$tabs['ayarlar'] = 'Ayarlar';
 		}
 
-		echo '<div class="wrap ys-wrap"><h1>Yazıyı Seslendir</h1>';
+		echo '<div class="wrap ys-wrap"><h1>Seslendir</h1>';
 		echo '<nav class="nav-tab-wrapper">';
 		foreach ( $tabs as $key => $label ) {
 			printf(
@@ -153,14 +153,23 @@ class YS_Admin {
 		$st  = YS_Settings::engine_status();
 		$dir = YS_Settings::engine_dir();
 
+		$model = YS_Models::get( YS_Settings::model() );
 		echo '<h2>Ses motoru</h2>';
+		printf(
+			'<p><strong>Seçili model:</strong> %s (%s). <a href="%s">Modeli değiştir</a></p>',
+			esc_html( (string) $model['label'] ),
+			esc_html( (string) $model['size'] ),
+			esc_url( self::page_url( array( 'tab' => 'ayarlar' ) ) )
+		);
 		echo '<p>Sesler, ziyaretçiye değil <strong>sizin tarayıcınıza</strong> yüklenen yerel bir motorla üretilir. Hiçbir dış servis kullanılmaz; motor dosyaları sitenizin <code>uploads</code> klasöründe durur.</p>';
 
 		echo '<div class="ys-card"><h3>Otomatik kurulum (önerilen)</h3>';
-		echo '<p>Motor paketini (Türkçe ses modeli dahil, yaklaşık 70–100 MB) projenin GitHub sürümünden indirir. İndirme küçük parçalarla yapılır, paylaşımlı hostinglerde de çalışır ve her dosya SHA-256 ile doğrulanır. Sayfayı kapatırsanız kaldığı yerden devam eder.</p>';
-		if ( 'okur' === YS_Settings::engine_kind() ) {
-			echo '<p class="description">Ses: <a href="https://huggingface.co/ahakan/okur-tts" target="_blank" rel="noopener noreferrer">okur</a> (Ahmet Hakan Beşel). Kod Apache-2.0, ağırlıklar CC BY 4.0. Eğitim verisi: Mozilla Common Voice (CC0), ISSAI Turkish Speech Corpus (MIT), MediaSpeech (CC BY 4.0), Google FLEURS (CC BY 4.0).</p>';
-		}
+		echo '<p>Seçili modelin paketini (ses modeli dahil) projenin GitHub sürümünden indirir. İndirme küçük parçalarla yapılır, paylaşımlı hostinglerde de çalışır ve her dosya SHA-256 ile doğrulanır. Sayfayı kapatırsanız kaldığı yerden devam eder.</p>';
+		printf(
+			'<p class="description">%s <a href="%s" target="_blank" rel="noopener noreferrer">Model sayfası</a></p>',
+			esc_html( (string) $model['license'] ),
+			esc_url( (string) $model['url'] )
+		);
 		echo '<div id="ys-setup-auto"><noscript>Bu bölüm JavaScript gerektirir.</noscript></div></div>';
 
 		echo '<h3>Dosya durumu</h3>';
@@ -178,7 +187,7 @@ class YS_Admin {
 		printf( '<p>%s</p>', esc_html( $st['ready'] ? 'Motor hazır. Yazılar sekmesinden seslendirmeye başlayabilirsiniz.' : 'Motor henüz hazır değil.' ) );
 
 		echo '<h3>Elle kurulum (yedek)</h3>';
-		echo '<p>Sunucunuz dış adreslere bağlanamıyorsa GitHub sürümlerindeki <code>seslendir-motor.zip</code> dosyasını bilgisayarınıza indirip buradan yükleyin. Yalnızca yukarıdaki dosya adları kabul edilir; başka her şey yok sayılır.</p>';
+		echo '<p>Sunucunuz dış adreslere bağlanamıyorsa GitHub sürümlerindeki <code>seslendir-motor-&lt;model&gt;.zip</code> dosyasını bilgisayarınıza indirip buradan yükleyin. Yalnızca yukarıdaki dosya adları kabul edilir; başka her şey yok sayılır.</p>';
 		printf( '<form method="post" action="%s" enctype="multipart/form-data">', esc_url( admin_url( 'admin-post.php' ) ) );
 		echo '<input type="hidden" name="action" value="ys_upload_engine">';
 		wp_nonce_field( 'ys_engine_upload' );
@@ -273,6 +282,8 @@ class YS_Admin {
 		settings_fields( YS_Settings::GROUP );
 		echo '<table class="form-table" role="presentation"><tbody>';
 
+		self::model_rows( $s );
+
 		echo '<tr><th scope="row">Seslendirilecek içerik türleri</th><td>';
 		foreach ( $types as $type => $obj ) {
 			$is_on = in_array( $type, (array) $s['post_types'], true );
@@ -288,7 +299,7 @@ class YS_Admin {
 
 		self::checkbox_row( 'read_title', 'Başlığı da oku', $s );
 		self::checkbox_row( 'confirm', 'Tek yazıda kaydetmeden önce dinleyip onayla', $s );
-		self::checkbox_row( 'autoinsert', 'Oynatıcıyı yazının başında otomatik göster (kapalıysa [yaziyi_seslendir] kısa kodunu kullanın)', $s );
+		self::checkbox_row( 'autoinsert', 'Oynatıcıyı yazının başında otomatik göster (kapalıysa [seslendir] kısa kodunu kullanın)', $s );
 		self::checkbox_row( 'show_column', 'Yazılar listesinde "Ses" sütununu göster', $s );
 
 		printf(
@@ -313,7 +324,7 @@ class YS_Admin {
 			esc_html( size_format( YS_Settings::max_bytes() ) )
 		);
 		printf(
-			'<tr><th scope="row"><label for="ys-tag">Ses etiketi</label></th><td><input id="ys-tag" type="text" class="regular-text" name="%s[voice_tag]" value="%s"> <span class="description">Başka bir ses/model kurduğunuzda değiştirin; tüm sesler "eski" sayılır.</span></td></tr>',
+			'<tr><th scope="row"><label for="ys-tag">Ses etiketi</label></th><td><input id="ys-tag" type="text" class="regular-text" name="%s[voice_tag]" value="%s"> <span class="description">İsteğe bağlı: değiştirince tüm sesler "eski" sayılır (model değişimi bunu zaten yapar).</span></td></tr>',
 			esc_attr( $name ),
 			esc_attr( $s['voice_tag'] )
 		);
@@ -321,6 +332,32 @@ class YS_Admin {
 		echo '</tbody></table>';
 		submit_button( 'Ayarları kaydet' );
 		echo '</form>';
+	}
+
+	/** Ses modeli seçimi: kayıtlı her model için bir seçenek, kurulu olup olmadığıyla birlikte. */
+	private static function model_rows( array $s ) {
+		$current = YS_Models::valid_id( (string) $s['model'] );
+		echo '<tr><th scope="row">Ses modeli</th><td>';
+		foreach ( YS_Models::all() as $id => $m ) {
+			$st = YS_Settings::engine_status( $id );
+			printf(
+				'<label style="display:block;margin-bottom:.9em"><input type="radio" name="%1$s[model]" value="%2$s"%3$s> <strong>%4$s</strong> <span class="description">(%5$s) %6$s</span><br><span style="margin-left:1.6em;display:inline-block">%7$s<br><span class="description">%8$s <a href="%9$s" target="_blank" rel="noopener noreferrer">Model sayfası</a></span></span></label>',
+				esc_attr( YS_Settings::OPT ),
+				esc_attr( $id ),
+				$id === $current ? ' checked' : '',
+				esc_html( (string) $m['label'] ),
+				esc_html( (string) $m['size'] ),
+				$st['ready'] ? '✅ Kurulu' : '⬇️ Kurulu değil',
+				esc_html( (string) $m['description'] ),
+				esc_html( (string) $m['license'] ),
+				esc_url( (string) $m['url'] )
+			);
+		}
+		printf(
+			'<p class="description">Seçtiğiniz model kurulu değilse <a href="%s">Kurulum</a> sekmesinden indirin. Model değişince tüm sesler "eski" sayılır ve yeniden üretilmelidir.</p>',
+			esc_url( self::page_url( array( 'tab' => 'kurulum' ) ) )
+		);
+		echo '</td></tr>';
 	}
 
 	private static function checkbox_row( $key, $label, array $s ) {

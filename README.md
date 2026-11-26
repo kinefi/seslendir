@@ -1,4 +1,4 @@
-# Yazıyı Seslendir
+# Seslendir
 
 Turn your Turkish WordPress posts into natural-sounding audio. The speech is generated **offline, inside the editor's browser**, saved to the Media Library, and played back to visitors with a plain `<audio>` player.
 
@@ -12,7 +12,7 @@ Source code, issues and releases: <https://github.com/kinefi/seslendir>
 
 ## How it works
 
-1. A person with edit access opens **Yazıyı Seslendir** in the left admin menu and presses **Üret** for a post (or selects many).
+1. A person with edit access opens **Seslendir** in the left admin menu and presses **Üret** for a post (or selects many).
 2. The plugin prepares the text on the server (numbers, dates, currency, abbreviations → spoken Turkish) and splits it into sentences.
 3. The browser loads a local WebAssembly speech engine (sherpa-onnx running a Piper Turkish voice) and synthesizes the audio. A blocking dialog shows progress.
 4. Optionally you **listen and approve** the result, then it is uploaded through an authenticated REST endpoint and attached to the post.
@@ -28,50 +28,38 @@ Source code, issues and releases: <https://github.com/kinefi/seslendir>
 ## Installation
 
 1. Upload the plugin folder to `wp-content/plugins/` (or install the release zip) and activate it.
-2. Open **Yazıyı Seslendir → Kurulum** and press **Otomatik indir ve kur**. The pack is downloaded in small chunks with a progress bar, each file is verified with SHA-256, and an interrupted download resumes where it stopped.
+2. Open **Seslendir → Kurulum** and press **Otomatik indir ve kur**. The pack is downloaded in small chunks with a progress bar, each file is verified with SHA-256, and an interrupted download resumes where it stopped.
 3. Open **Ayarlar** and pick the content types to voice. Posts are enabled by default.
 
-### Where the engine pack comes from
+### Models and engine packs
 
-There is no ready-made Turkish sherpa-onnx WebAssembly build to download, because each prebuilt sherpa package has its voice baked in. This repository therefore builds one itself:
+**Seslendir → Ayarlar** lists the supported models; pick one and save. The **Kurulum** tab downloads only the selected model, into its own folder (`wp-content/uploads/seslendir-motor/<model>/`). Switching models keeps the other downloads. Audio generated with a different model is marked **Eski** (stale).
 
-- **Maintainer, once:** GitHub → **Actions → Build engine pack → Run workflow**. It builds sherpa-onnx for WebAssembly with the Piper `tr_TR-fettah-medium` voice, loads the result in headless Chromium and checks that it really speaks Turkish, then publishes the files plus `engine-manifest.json` as the GitHub release `engine-1`. Nothing is published if the smoke test fails.
-- **Every site:** the **Otomatik indir** button reads that manifest and downloads the files.
-
-Until the workflow has run once, the Kurulum tab says the pack is not published yet. If your server cannot reach GitHub, download `seslendir-motor.zip` from the `engine-1` release and upload it in the **Kurulum** tab, or copy the files by FTP to `wp-content/uploads/seslendir-motor/`.
-
-| File | Required | Purpose |
+| Model | Engine | Notes |
 |---|---|---|
-| `sherpa-onnx-tts.js` | yes | JavaScript API (`createOfflineTts`) |
-| `sherpa-onnx-wasm-main-tts.js` | yes | Emscripten loader |
-| `sherpa-onnx-wasm-main-tts.wasm` | yes | Runtime |
-| `sherpa-onnx-wasm-main-tts.data` | yes | Packed model and tokens |
-| `piper-phonemize.js`, `piper-phonemize-wasm-main.js/.wasm/.data` | yes | Turkish text → phonemes (espeak-ng), run in a Web Worker |
-| `lame.min.js` | no | [lamejs](https://github.com/zhuker/lamejs) (LGPL); when present audio is saved as small MP3 files instead of WAV |
+| `piper-sherpa` (default) | sherpa-onnx WebAssembly + Piper `tr_TR-fettah-medium` | Most compatible, verified end to end |
+| `piper-ort` | ONNX Runtime Web + the same Piper voice | No C++ build; less tested |
+| `okur` | ONNX Runtime Web + [Okur TTS](https://github.com/ahmethakanbesel/okur-tts) | Often more natural; weights are CC BY 4.0 (attribution required); less tested |
 
-Other hosts or a different voice: set the `YS_ENGINE_MANIFEST_URL` constant (or the `ys_engine_manifest_url` filter) and, if the host is not GitHub or Hugging Face, add it with the `ys_engine_allowed_hosts` filter. Manifest files must be `https`, list only the nine file names above, and carry a SHA-256 for each file.
+**Maintainer, once:** GitHub → **Actions → Build engines → Run workflow** (`models = all`, or one model). Each model is built in its own job, loaded in headless Chromium to check that it really speaks Turkish, and only then published with its `engine-manifest.json` as the GitHub release `motor-piper-sherpa`, `motor-piper-ort` or `motor-okur`. Nothing is published if a smoke test fails.
 
-> **Status note:** the PHP, normalizer, storage, download and UI code is covered by automated tests. The WebAssembly engine itself could not be built in the environment where this release was authored, so the *Build engine pack* workflow is its first real run; its smoke test is what proves the pack works. If the build step fails, open the failing step's log (the sherpa-onnx build script name or asset layout may differ between versions; the `sherpa_ref` input lets you pin a version).
+**Every site:** the **Otomatik indir** button reads the selected model's manifest and downloads its files in small resumable chunks, each verified with SHA-256. If your server cannot reach GitHub, download `seslendir-motor-<model>.zip` from that release and upload it in the **Kurulum** tab, or copy the files by FTP to the model's folder.
 
-### Okur TTS (`okur`)
+Files per model (the manifest lists exactly these and nothing else):
 
-[Okur](https://github.com/ahmethakanbesel/okur-tts) is a small open Turkish model (one voice, 48 kHz). To use it:
+| Model | Files |
+|---|---|
+| `piper-sherpa` | `sherpa-onnx-tts.js`, `sherpa-onnx-wasm-main-tts.js/.wasm/.data`, phonemizer (below) |
+| `piper-ort` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `voice.onnx`, `voice.onnx.json`, phonemizer |
+| `okur` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `okur-config.json`, `okur-frontend.wasm`, `okur-text.onnx`, `okur-sample.onnx`, `okur-decoder.onnx` |
+| phonemizer (Piper models) | `piper-phonemize.js`, `piper-phonemize-wasm-main.js/.wasm/.data` (Turkish text → phonemes with espeak-ng, in a Web Worker) |
+| optional | `lame.min.js` ([lamejs](https://github.com/zhuker/lamejs), LGPL): audio is saved as small MP3 instead of WAV |
 
-1. Run **Actions → Build engine pack (Okur) → Run workflow** once (publishes release `engine-3`; the Rust text frontend is compiled there).
-2. Add `define( 'YS_ENGINE_KIND', 'okur' );` to `wp-config.php`.
-3. Use **Kurulum → Otomatik indir ve kur**.
+Other hosts: set `YS_ENGINE_MANIFEST_URL` (or the `ys_engine_manifest_url` filter) and, if the host is not GitHub or Hugging Face, add it with `ys_engine_allowed_hosts`. Manifests must be `https`, carry a SHA-256 per file and match the selected engine kind. Packs already downloaded by an older version are moved into the new folder automatically.
 
-Licences: Okur's code is Apache-2.0; its weights are **CC BY 4.0**, so attribution is required: "okur" (Ahmet Hakan Beşel) and the training corpora Mozilla Common Voice (CC0), ISSAI Turkish Speech Corpus (MIT), MediaSpeech (CC BY 4.0) and Google FLEURS (CC BY 4.0). See the project's NOTICE. The model card asks not to use the voice to impersonate a real person or pass it off as human.
+> **Status note:** the PHP, normalizer, storage, download and UI code is covered by automated tests. Only the `piper-sherpa` pack has been run end to end on a real site; the `piper-ort` and `okur` packs are verified by the workflow's smoke test only.
 
-### Alternative engine: ONNX Runtime (`piper-ort`)
-
-Building sherpa-onnx for WebAssembly is the most fragile part of the setup. As an alternative, the plugin can run the Piper model directly with ONNX Runtime Web (no compilation at all):
-
-1. Run **Actions → Build engine pack (ONNX Runtime) → Run workflow** once (publishes release `engine-2`).
-2. Add `define( 'YS_ENGINE_KIND', 'piper-ort' );` to `wp-config.php`.
-3. Use **Kurulum → Otomatik indir ve kur** as usual.
-
-`sherpa` remains the default until the ONNX Runtime pack has been verified. Check the voice's licence before commercial use.
+Okur licences: code Apache-2.0, weights **CC BY 4.0**, so attribution is required: "okur" (Ahmet Hakan Beşel) and the training corpora Mozilla Common Voice (CC0), ISSAI Turkish Speech Corpus (MIT), MediaSpeech (CC BY 4.0) and Google FLEURS (CC BY 4.0). The model card asks not to use the voice to impersonate a real person or pass it off as human. Check the Piper voice's licence before commercial use.
 
 ## Using it
 
@@ -81,7 +69,7 @@ Building sherpa-onnx for WebAssembly is the most fragile part of the setup. As a
   - **Dinle / Sil** – play or delete the saved audio.
   - **Eksik olanların hepsini seslendir**, **Eski olanları yenile**, **Seçilenleri seslendir** – batch runs. Keep the tab open until the dialog finishes.
 - **Posts list:** an optional read-only **Ses** column links to the generator.
-- **Front end:** the player is inserted above the post content automatically, or place `[yaziyi_seslendir]` (optionally `id="123"`) yourself and turn auto-insert off.
+- **Front end:** the player is inserted above the post content automatically, or place `[seslendir]` (optionally `id="123"`) yourself and turn auto-insert off.
 
 ## Settings
 
@@ -126,7 +114,7 @@ sh tests/run.sh        # PHP lint, JS syntax, PHP tests, JS tests
 - `tools/make-engine-manifest.py` – writes `engine-manifest.json`; `tools/engine-smoke.mjs` – headless-Chromium smoke test of an engine pack.
 - `.github/workflows/tests.yml` – lint and tests on PHP 8.5 and Node.
 - `.github/workflows/security.yml` – WordPress security sniffs, PHP 8.5 compatibility, Semgrep, CodeQL, Gitleaks (weekly + on every push/PR).
-- `.github/workflows/build-engine.yml` – builds, smoke-tests and publishes the engine pack (manual trigger).
+- `.github/workflows/build-engines.yml` – builds, smoke-tests and publishes the engine packs, one job per model (manual trigger).
 - `.github/workflows/release.yml` – push a `vX.Y.Z` tag to build the installable zip and publish a GitHub release. The tag must match the plugin header version, `YS_VERSION` and a `CHANGELOG.md` entry.
 
 ## License

@@ -1,5 +1,5 @@
 /*
- * Yazıyı Seslendir: Kurulum sekmesi, otomatik motor indirme.
+ * Seslendir: Kurulum sekmesi, otomatik motor indirme.
  * Sunucu, paketi küçük parçalarla indirir; bu betik "bitti" yanıtı gelene kadar adım ister.
  */
 ( function () {

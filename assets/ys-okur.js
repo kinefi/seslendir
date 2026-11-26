@@ -1,5 +1,5 @@
 /*
- * Yazıyı Seslendir: Okur TTS (https://github.com/ahmethakanbesel/okur-tts, Apache-2.0; ağırlıklar CC BY 4.0) için
+ * Seslendir: Okur TTS (https://github.com/ahmethakanbesel/okur-tts, Apache-2.0; ağırlıklar CC BY 4.0) için
  * saf yardımcılar. Okur'un web/src/core/{chunks,noise,timeline}.ts dosyalarının düz JavaScript karşılığıdır;
  * DOM'a bağlı değildir ve Node'da test edilir. Çıkarım ys-engine.js içinde ONNX Runtime Web ile yapılır.
  */

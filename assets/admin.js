@@ -243,10 +243,11 @@
 	function waitChoice( node, primary, secondary ) {
 		return new Promise( function ( resolve ) {
 			modal.body( node );
-			modal.actions( [
-				{ label: primary, primary: true, onClick: function () { resolve( true ); } },
-				{ label: secondary, onClick: function () { resolve( false ); } }
-			] );
+			var acts = [ { label: primary, primary: true, onClick: function () { resolve( true ); } } ];
+			if ( secondary && secondary !== primary ) {
+				acts.push( { label: secondary, onClick: function () { resolve( false ); } } );
+			}
+			modal.actions( acts );
 		} );
 	}
 
@@ -268,7 +269,7 @@
 		} );
 
 		if ( mode === 'preview' ) {
-			await waitChoice( previewNode( chunks, A.buildWav( out.pcm, out.rate ) ), 'Kapat', 'Kapat' );
+			await waitChoice( previewNode( chunks, A.buildWav( out.pcm, out.rate ) ), 'Kapat' );
 			return 'previewed';
 		}
 

@@ -16,6 +16,7 @@ class YS_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
 		add_action( 'admin_post_ys_upload_engine', array( __CLASS__, 'handle_engine_upload' ) );
+		add_action( 'admin_post_ys_select_model', array( __CLASS__, 'handle_select_model' ) );
 		add_action( 'admin_init', array( __CLASS__, 'columns' ) );
 	}
 
@@ -155,12 +156,7 @@ class YS_Admin {
 
 		$model = YS_Models::get( YS_Settings::model() );
 		echo '<h2>Ses motoru</h2>';
-		printf(
-			'<p><strong>Seçili model:</strong> %s (%s). <a href="%s">Modeli değiştir</a></p>',
-			esc_html( (string) $model['label'] ),
-			esc_html( (string) $model['size'] ),
-			esc_url( self::page_url( array( 'tab' => 'ayarlar' ) ) )
-		);
+		self::model_picker();
 		echo '<p>Sesler, ziyaretçiye değil <strong>sizin tarayıcınıza</strong> yüklenen yerel bir motorla üretilir. Hiçbir dış servis kullanılmaz; motor dosyaları sitenizin <code>uploads</code> klasöründe durur.</p>';
 
 		echo '<div class="ys-card"><h3>Otomatik kurulum (önerilen)</h3>';
@@ -282,7 +278,7 @@ class YS_Admin {
 		settings_fields( YS_Settings::GROUP );
 		echo '<table class="form-table" role="presentation"><tbody>';
 
-		self::model_rows( $s );
+		echo '<tr><th scope="row">Ses modeli</th><td>' . esc_html( (string) YS_Models::get( YS_Settings::model() )['label'] ) . ' <a href="' . esc_url( self::page_url( array( 'tab' => 'kurulum' ) ) ) . '">Kurulum sekmesinden değiştirin</a></td></tr>';
 
 		echo '<tr><th scope="row">Seslendirilecek içerik türleri</th><td>';
 		foreach ( $types as $type => $obj ) {
@@ -323,26 +319,22 @@ class YS_Admin {
 			esc_attr( (string) $s['max_mb'] ),
 			esc_html( size_format( YS_Settings::max_bytes() ) )
 		);
-		printf(
-			'<tr><th scope="row"><label for="ys-tag">Ses etiketi</label></th><td><input id="ys-tag" type="text" class="regular-text" name="%s[voice_tag]" value="%s"> <span class="description">İsteğe bağlı: değiştirince tüm sesler "eski" sayılır (model değişimi bunu zaten yapar).</span></td></tr>',
-			esc_attr( $name ),
-			esc_attr( $s['voice_tag'] )
-		);
 
 		echo '</tbody></table>';
 		submit_button( 'Ayarları kaydet' );
 		echo '</form>';
 	}
 
-	/** Ses modeli seçimi: kayıtlı her model için bir seçenek, kurulu olup olmadığıyla birlikte. */
-	private static function model_rows( array $s ) {
-		$current = YS_Models::valid_id( (string) $s['model'] );
-		echo '<tr><th scope="row">Ses modeli</th><td>';
+	/** Kurulum sekmesindeki model seçimi: yalnızca modeli kaydeder, diğer ayarlara dokunmaz. */
+	private static function model_picker() {
+		$current = YS_Settings::model();
+		printf( '<form method="post" action="%s" class="ys-card">', esc_url( admin_url( 'admin-post.php' ) ) );
+		echo '<h3>Ses modeli</h3><input type="hidden" name="action" value="ys_select_model">';
+		wp_nonce_field( 'ys_select_model' );
 		foreach ( YS_Models::all() as $id => $m ) {
 			$st = YS_Settings::engine_status( $id );
 			printf(
-				'<label style="display:block;margin-bottom:.9em"><input type="radio" name="%1$s[model]" value="%2$s"%3$s> <strong>%4$s</strong> <span class="description">(%5$s) %6$s</span><br><span style="margin-left:1.6em;display:inline-block">%7$s<br><span class="description">%8$s <a href="%9$s" target="_blank" rel="noopener noreferrer">Model sayfası</a></span></span></label>',
-				esc_attr( YS_Settings::OPT ),
+				'<label style="display:block;margin-bottom:.9em"><input type="radio" name="model" value="%1$s"%2$s> <strong>%3$s</strong> <span class="description">(%4$s) %5$s</span><br><span style="margin-left:1.6em;display:inline-block">%6$s<br><span class="description">%7$s <a href="%8$s" target="_blank" rel="noopener noreferrer">Model sayfası</a></span></span></label>',
 				esc_attr( $id ),
 				$id === $current ? ' checked' : '',
 				esc_html( (string) $m['label'] ),
@@ -353,11 +345,27 @@ class YS_Admin {
 				esc_url( (string) $m['url'] )
 			);
 		}
-		printf(
-			'<p class="description">Seçtiğiniz model kurulu değilse <a href="%s">Kurulum</a> sekmesinden indirin. Model değişince tüm sesler "eski" sayılır ve yeniden üretilmelidir.</p>',
-			esc_url( self::page_url( array( 'tab' => 'kurulum' ) ) )
-		);
-		echo '</td></tr>';
+		echo '<p class="description">Model değişince tüm sesler "eski" sayılır ve yeniden üretilmelidir. Seçtikten sonra aşağıdan o modeli indirin.</p>';
+		submit_button( 'Modeli seç', 'secondary', 'submit', false );
+		echo '</form>';
+	}
+
+	public static function handle_select_model() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html( 'Yetkiniz yok.' ), '', array( 'response' => 403 ) );
+		}
+		check_admin_referer( 'ys_select_model' );
+		$id = isset( $_POST['model'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['model'] ) ) : '';
+		if ( YS_Models::valid_id( $id ) === $id && in_array( $id, YS_Models::ids(), true ) ) {
+			$all          = YS_Settings::all();
+			$all['model'] = $id;
+			update_option( YS_Settings::OPT, $all );
+			self::notice( 'success', 'Model seçildi: ' . (string) YS_Models::get( $id )['label'] . '. Gerekirse aşağıdan indirin.' );
+		} else {
+			self::notice( 'error', 'Geçersiz model.' );
+		}
+		wp_safe_redirect( self::page_url( array( 'tab' => 'kurulum' ) ) );
+		exit;
 	}
 
 	private static function checkbox_row( $key, $label, array $s ) {

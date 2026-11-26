@@ -94,7 +94,8 @@ class YS_Settings {
 		$label        = isset( $in['label'] ) ? sanitize_text_field( (string) $in['label'] ) : '';
 		$out['label'] = '' === $label ? $def['label'] : mb_substr( $label, 0, 60 );
 
-		$out['model'] = YS_Models::valid_id( isset( $in['model'] ) ? (string) $in['model'] : $def['model'] );
+		// Model Kurulum sekmesinden seçilir; Ayarlar formu onu göndermez, kayıtlı değer korunur.
+		$out['model'] = YS_Models::valid_id( isset( $in['model'] ) ? (string) $in['model'] : (string) self::get( 'model' ) );
 
 		$tag              = isset( $in['voice_tag'] ) ? preg_replace( '/[^A-Za-z0-9._-]/', '', (string) $in['voice_tag'] ) : '';
 		$out['voice_tag'] = '' === $tag ? $def['voice_tag'] : substr( $tag, 0, 40 );

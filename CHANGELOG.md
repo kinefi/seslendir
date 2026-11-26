@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0] - 2026-11-26
+### Changed
+- **Model selection moved to the Kurulum tab** (select, then download, in one place). It saves only the model; the Ayarlar form keeps the stored model.
+- Removed the "Ses etiketi" field from Ayarlar: changing the model already marks audio stale. The `voice_tag` option remains internally (default value), so existing audio stays valid.
+### Fixed
+- The preview dialog showed two identical "Kapat" buttons; it now shows one.
+
 ## [1.4.1] - 2026-11-26
 ### Fixed
 - Seslendir page showed "Ne yazık ki, bunu yapma izniniz yok. [GET post/0/text → 403]" on every load: `wp_localize_script` turns the integer `startId` 0 into the string `"0"`, which is truthy in JavaScript, so the auto-start request ran with post ID 0. The value is now parsed as a number and only positive IDs start a run.

@@ -17,9 +17,17 @@ on:
         description: 'onnxruntime-web sürümü (npm)'
         default: '1.22.0'
         required: true
-      voice_path:
-        description: 'rhasspy/piper-voices içindeki yol, uzantısız'
-        default: 'tr/tr_TR/fettah/medium/tr_TR-fettah-medium'
+      voice_repo:
+        description: 'Hugging Face ses deposu (kökte <ad>.onnx ve <ad>.onnx.json bulunmalı; sherpa derlemesinin kullandığı depo)'
+        default: 'csukuangfj/vits-piper-tr_TR-fettah-medium'
+        required: true
+      voice_onnx:
+        description: 'Depodaki model dosyası (örn. tr_TR-fettah-medium.onnx; speaches-ai deposunda model.onnx)'
+        default: 'tr_TR-fettah-medium.onnx'
+        required: true
+      voice_config:
+        description: 'Depodaki yapılandırma dosyası (örn. tr_TR-fettah-medium.onnx.json; speaches-ai deposunda config.json)'
+        default: 'tr_TR-fettah-medium.onnx.json'
         required: true
 
 permissions:
@@ -37,7 +45,9 @@ jobs:
     env:
       TAG: ${{ inputs.release_tag }}
       ORT_VERSION: ${{ inputs.ort_version }}
-      VOICE_PATH: ${{ inputs.voice_path }}
+      VOICE_REPO: ${{ inputs.voice_repo }}
+      VOICE_ONNX: ${{ inputs.voice_onnx }}
+      VOICE_CONFIG: ${{ inputs.voice_config }}
     steps:
       - uses: actions/checkout@v7
 
@@ -62,9 +72,9 @@ jobs:
 
       - name: Get the Piper voice
         run: |
-          BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main/${VOICE_PATH}"
-          curl -fL --retry 3 -o dist/voice.onnx "${BASE}.onnx"
-          curl -fL --retry 3 -o dist/voice.onnx.json "${BASE}.onnx.json"
+          BASE="https://huggingface.co/${VOICE_REPO}/resolve/main"
+          curl -fL --retry 3 -o dist/voice.onnx "${BASE}/${VOICE_ONNX}"
+          curl -fL --retry 3 -o dist/voice.onnx.json "${BASE}/${VOICE_CONFIG}"
           python3 - <<'PY'
           import json
           c = json.load(open('dist/voice.onnx.json', encoding='utf-8'))
@@ -99,7 +109,7 @@ jobs:
 
       - name: Manifest and manual-install zip
         run: |
-          python3 tools/make-engine-manifest.py dist "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" --engine piper-ort --voice "$(basename "$VOICE_PATH")"
+          python3 tools/make-engine-manifest.py dist "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" --engine piper-ort --voice "$(basename "$VOICE_REPO")"
           (cd dist && zip -q ../yaziyi-seslendir-motor-ort.zip ort* voice.onnx voice.onnx.json piper-phonemize* $(ls lame.min.js 2>/dev/null))
           mv yaziyi-seslendir-motor-ort.zip dist/
           ls -la dist
@@ -109,7 +119,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTES="Yazıyı Seslendir motor paketi (ONNX Runtime Web ${ORT_VERSION} + Piper ${VOICE_PATH##*/}). wp-config.php içinde define( 'YS_ENGINE_KIND', 'piper-ort' ); ile kullanılır; yaziyi-seslendir-motor-ort.zip elle kurulum içindir."
+          NOTES="Yazıyı Seslendir motor paketi (ONNX Runtime Web ${ORT_VERSION} + Piper, ${VOICE_REPO}). wp-config.php içinde define( 'YS_ENGINE_KIND', 'piper-ort' ); ile kullanılır; yaziyi-seslendir-motor-ort.zip elle kurulum içindir."
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else

@@ -16,8 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Eklenti PHP 8.4+ ister: desteklenen iki sürümde sınanır.
-        php: [ '8.4', '8.5' ]
+        # Testler yalnızca PHP 8.5'te çalışır (eklenti başlığı PHP 8.5+ ister).
+        php: [ '8.5' ]
     steps:
       - uses: actions/checkout@v7
 

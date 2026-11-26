@@ -67,5 +67,17 @@ $bad = manifest_for( 'piper-ort' );
 array_pop( $bad['files'] );
 t( 'ort: eksik zorunlu dosya reddedilir', YS_Engine::validate_manifest( $bad )['ok'], false );
 
+$GLOBALS['ys_test_filters']['ys_engine_kind'] = 'sherpa';
+$m = manifest_for( 'sherpa' );
+$m['files'][] = array(
+	'name'   => 'ort.wasm.min.js',
+	'size'   => 10,
+	'sha256' => str_repeat( 'c', 64 ),
+	'url'    => 'https://github.com/kinefi/yaziyi-seslendir/releases/download/x/ort.wasm.min.js',
+);
+$r = YS_Engine::validate_manifest( $m );
+t( 'izinsiz ad reddedilir', $r['ok'], false );
+t( 'hata mesajı dosya adını söyler', false !== strpos( $r['error'], 'ort.wasm.min.js' ) );
+
 echo $fail ? "$fail / $n FAILED\n" : "OK ($n assertions): " . basename( __FILE__ ) . "\n";
 exit( $fail ? 1 : 0 );

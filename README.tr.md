@@ -20,7 +20,7 @@ Kaynak kod, sorunlar ve sürümler: <https://github.com/kinefi/yaziyi-seslendir>
 
 ## Gereksinimler
 
-- WordPress 7.0+, PHP 8.4+ (`mbstring`), HTTPS önerilir.
+- WordPress 7.0+, PHP 8.5+ (`mbstring`), HTTPS önerilir.
 - Sesi üreten kişi için WebAssembly destekleyen güncel bir masaüstü tarayıcı (Chrome, Edge, Firefox, Safari). Ziyaretçiler için `<audio>` desteği yeterli.
 - Ses motoru dosyaları (≈ 70–100 MB). Eklentiyle **birlikte gelmezler**; eklenti sizin için indirir (sonraki bölüm).
 - Otomatik indirme için sunucunun `github.com` adresine dışarı HTTPS isteği atabilmesi gerekir. Atamıyorsa elle ZIP ya da FTP yolunu kullanın.
@@ -114,8 +114,8 @@ sh tests/run.sh        # PHP lint, JS sözdizimi, PHP testleri, JS testleri
 
 - `tests/`: PHP testleri (WordPress işlevleri `tests/wp_stubs.php` içinde taklit edilir) ve JavaScript testleri.
 - `tools/make-engine-manifest.py`: `engine-manifest.json` yazar; `tools/engine-smoke.mjs`: motor paketinin başsız Chromium duman testi.
-- `.github/workflows/tests.yml`: PHP 8.4 / 8.5 ve Node üzerinde lint ve testler.
-- `.github/workflows/security.yml`: WordPress güvenlik kuralları, PHP 8.4 uyumluluğu, Semgrep, CodeQL, Gitleaks (haftalık ve her push/PR'da).
+- `.github/workflows/tests.yml`: PHP 8.5 ve Node üzerinde lint ve testler.
+- `.github/workflows/security.yml`: WordPress güvenlik kuralları, PHP 8.5 uyumluluğu, Semgrep, CodeQL, Gitleaks (haftalık ve her push/PR'da).
 - `.github/workflows/build-engine.yml`: motor paketini derler, duman testinden geçirir ve yayımlar (elle tetiklenir).
 - `.github/workflows/release.yml`: `vX.Y.Z` etiketi itilince kurulabilir ZIP'i üretip GitHub sürümü yayımlar. Etiket; eklenti başlığındaki sürüm, `YS_VERSION` ve `CHANGELOG.md` kaydıyla eşleşmelidir.
 

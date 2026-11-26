@@ -37,10 +37,10 @@ jobs:
             --extensions=php \
             --ignore=vendor/*,tests/* .
 
-      - name: PHP 8.4 compatibility (plugin header says Requires PHP 8.4)
+      - name: PHP 8.5 compatibility (plugin header says Requires PHP 8.5)
         run: |
           "$(composer global config bin-dir --absolute --quiet)/phpcs" --standard=PHPCompatibilityWP \
-            --runtime-set testVersion 8.4- \
+            --runtime-set testVersion 8.5- \
             --extensions=php \
             --ignore=vendor/*,tests/* .
 

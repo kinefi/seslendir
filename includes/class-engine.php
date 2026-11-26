@@ -122,7 +122,8 @@ class YS_Engine {
 			$sha  = $f['sha256'] ?? null;
 			$url  = $f['url'] ?? null;
 			if ( ! is_string( $name ) || ! in_array( $name, $allowed, true ) ) {
-				return $fail( 'Manifestte izin verilmeyen dosya adı var.' );
+				$shown = is_string( $name ) ? substr( preg_replace( '/[^A-Za-z0-9._-]/', '', $name ), 0, 60 ) : '?';
+				return $fail( 'Manifestte izin verilmeyen dosya adı var: ' . $shown . ' (etkin motor: ' . YS_Settings::engine_kind() . '). Eklentiyi ve manifest adresini kontrol edin.' );
 			}
 			if ( isset( $seen[ $name ] ) ) {
 				return $fail( 'Manifestte tekrarlanan dosya var: ' . $name );

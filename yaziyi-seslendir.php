@@ -5,7 +5,7 @@
  * Description:       Yazıları doğal Türkçe sesle seslendirir. Ses, yönetim sayfasındaki düğmeyle tarayıcıda üretilir ve Medya Kitaplığı'na kaydedilir; ziyaretçiler hazır dosyayı dinler. Dış servis ve sunucu komutu kullanmaz.
  * Version:           1.2.0
  * Requires at least: 7.0
- * Requires PHP:      8.4
+ * Requires PHP:      8.5
  * Author:            kinefi
  * Author URI:        https://github.com/kinefi
  * License: GPL-3.0-or-later

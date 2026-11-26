@@ -20,7 +20,7 @@ Source code, issues and releases: <https://github.com/kinefi/yaziyi-seslendir>
 
 ## Requirements
 
-- WordPress 7.0+, PHP 8.4+ (`mbstring`), HTTPS recommended.
+- WordPress 7.0+, PHP 8.5+ (`mbstring`), HTTPS recommended.
 - A modern desktop browser for whoever generates audio (Chrome, Edge, Firefox or Safari with WebAssembly). Visitors only need an `<audio>`-capable browser.
 - The speech engine files (≈ 70–100 MB). They are **not bundled**; the plugin downloads them for you (next section).
 - For the automatic download: the server must be able to make outbound HTTPS requests to `github.com`. Otherwise use the manual ZIP or FTP route.
@@ -114,8 +114,8 @@ sh tests/run.sh        # PHP lint, JS syntax, PHP tests, JS tests
 
 - `tests/` – PHP tests (WordPress functions stubbed in `tests/wp_stubs.php`) and JavaScript tests.
 - `tools/make-engine-manifest.py` – writes `engine-manifest.json`; `tools/engine-smoke.mjs` – headless-Chromium smoke test of an engine pack.
-- `.github/workflows/tests.yml` – lint and tests on PHP 8.4 / 8.5 and Node.
-- `.github/workflows/security.yml` – WordPress security sniffs, PHP 8.4 compatibility, Semgrep, CodeQL, Gitleaks (weekly + on every push/PR).
+- `.github/workflows/tests.yml` – lint and tests on PHP 8.5 and Node.
+- `.github/workflows/security.yml` – WordPress security sniffs, PHP 8.5 compatibility, Semgrep, CodeQL, Gitleaks (weekly + on every push/PR).
 - `.github/workflows/build-engine.yml` – builds, smoke-tests and publishes the engine pack (manual trigger).
 - `.github/workflows/release.yml` – push a `vX.Y.Z` tag to build the installable zip and publish a GitHub release. The tag must match the plugin header version, `YS_VERSION` and a `CHANGELOG.md` entry.
 

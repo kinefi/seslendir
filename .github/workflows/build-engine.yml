@@ -19,8 +19,8 @@ on:
         default: 'master'
         required: true
       emsdk_version:
-        description: 'Emscripten SDK sürümü'
-        default: 'latest'
+        description: 'Emscripten SDK sürümü (sherpa-onnx CI ile aynı; "latest" yeni libc++ yüzünden derlemeyi bozabilir)'
+        default: '4.0.23'
         required: true
       voice_repo:
         description: 'Hugging Face ses deposu (Piper/VITS biçimi: .onnx ve tokens.txt)'

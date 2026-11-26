@@ -3,6 +3,7 @@
 ## [1.1.1] - 2026-11-26
 ### Fixed
 - **`Build engine pack` failed at the CMake step** ("No text frontend found"). Current sherpa-onnx no longer uses the voice's `espeak-ng-data`; text must be phonemized separately. The workflow now fetches the `piper-phonemize` WebAssembly bundle (SHA-256 pinned), stages only `model.onnx` and `tokens.txt`, and adds the four `piper-phonemize*` files to the pack.
+- The build also failed in kaldifst (`strtoll` undeclared) with Emscripten `latest` (7.0.1). The workflow now defaults to Emscripten 4.0.23, the version sherpa-onnx's own CI uses.
 ### Changed
 - The engine loader phonemizes Turkish text with espeak-ng (`tr`) in a Web Worker (`assets/ys-phonemize-worker.js`) and passes the phoneme codes to sherpa-onnx (`generateWithConfig`). `engine.generate()` is now asynchronous.
 - The pack, manifest, ZIP installer and allow-list now cover nine file names (was five).

@@ -196,7 +196,7 @@
 
 	function getEngine() {
 		if ( ! enginePromise ) {
-			enginePromise = window.YSEngine.load( { base: Y.engineUrl, worker: Y.workerUrl, ver: Y.ver, lame: Y.lame } );
+			enginePromise = window.YSEngine.load( { kind: Y.kind, base: Y.engineUrl, worker: Y.workerUrl, ver: Y.ver, lame: Y.lame } );
 			enginePromise.catch( function () { enginePromise = null; } );
 		}
 		return enginePromise;

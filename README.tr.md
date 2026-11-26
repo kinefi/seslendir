@@ -53,6 +53,16 @@ Başka bir sunucu ya da farklı bir ses için `YS_ENGINE_MANIFEST_URL` sabitini 
 
 > **Durum notu:** PHP, normalleştirici, depolama, indirme ve arayüz kodu otomatik testlerle sınanmıştır. WebAssembly motorunun kendisi bu sürümün hazırlandığı ortamda derlenemedi; yani *Build engine pack* iş akışı onun ilk gerçek çalıştırmasıdır ve paketin çalıştığını duman testi kanıtlar. Derleme adımı hata verirse o adımın günlüğünü açın (sherpa-onnx betik adı ya da varlık düzeni sürümler arasında değişebilir; `sherpa_ref` girdisiyle bir sürümü sabitleyebilirsiniz).
 
+### Alternatif motor: ONNX Runtime (`piper-ort`)
+
+sherpa-onnx'i WebAssembly için derlemek kurulumun en kırılgan kısmıdır. Alternatif olarak eklenti, Piper modelini ONNX Runtime Web ile doğrudan çalıştırabilir (hiç derleme yok):
+
+1. Bir kez **Actions → Build engine pack (ONNX Runtime) → Run workflow** çalıştırın (`engine-2` sürümünü yayımlar).
+2. `wp-config.php` dosyasına `define( 'YS_ENGINE_KIND', 'piper-ort' );` ekleyin.
+3. **Kurulum → Otomatik indir ve kur** düğmesini her zamanki gibi kullanın.
+
+ONNX Runtime paketi doğrulanana kadar varsayılan `sherpa` kalır. Ticari kullanımdan önce sesin lisansını kontrol edin.
+
 ## Kullanım
 
 - **Yazılar sekmesi:** her yazının durumu (🔊 Var / ⚠️ Eski / ➕ Yok), süzgeçler, arama ve toplu işlemler.

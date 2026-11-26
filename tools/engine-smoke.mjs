@@ -1,6 +1,6 @@
 // CI duman testi: motor paketini başsız Chromium'da, eklentinin kullandığı yükleyiciyle açar,
 // Türkçe bir cümle seslendirir ve gerçekten ses üretildiğini doğrular.
-//   node tools/engine-smoke.mjs <paket-klasörü>
+//   node tools/engine-smoke.mjs <paket-klasörü> [sherpa|piper-ort]
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,11 +9,13 @@ import { chromium } from 'playwright';
 
 const here = path.dirname( fileURLToPath( import.meta.url ) );
 const engineDir = path.resolve( process.argv[ 2 ] || 'dist' );
+const kind = process.argv[ 3 ] === 'piper-ort' ? 'piper-ort' : 'sherpa';
 const types = { '.js': 'text/javascript', '.wasm': 'application/wasm', '.html': 'text/html; charset=utf-8', '.data': 'application/octet-stream' };
 
 function resolveFile( url ) {
 	const p = decodeURIComponent( url.split( '?' )[ 0 ] );
 	if ( p === '/smoke.html' ) return path.join( here, 'smoke.html' );
+	if ( p === '/assets/ys-piper.js' ) return path.join( here, '..', 'assets', 'ys-piper.js' );
 	if ( p === '/assets/ys-engine.js' ) return path.join( here, '..', 'assets', 'ys-engine.js' );
 	if ( p === '/assets/ys-phonemize-worker.js' ) return path.join( here, '..', 'assets', 'ys-phonemize-worker.js' );
 	if ( p.startsWith( '/engine/' ) ) {
@@ -41,7 +43,7 @@ const browser = await chromium.launch();
 const page = await browser.newPage();
 page.on( 'console', ( m ) => console.log( '[browser]', m.text() ) );
 page.on( 'pageerror', ( e ) => console.log( '[pageerror]', e.message ) );
-await page.goto( `http://127.0.0.1:${ port }/smoke.html` );
+await page.goto( `http://127.0.0.1:${ port }/smoke.html?kind=${ kind }` );
 
 let result = null;
 try {

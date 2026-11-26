@@ -22,7 +22,8 @@ function wp_parse_url( $u, $c = -1 ) {
 	return parse_url( $u, $c );
 }
 function apply_filters( $tag, $value ) {
-	return $value;
+	// Testlerde $GLOBALS['ys_test_filters'][ $tag ] ile geçersiz kılınabilir.
+	return $GLOBALS['ys_test_filters'][ $tag ] ?? $value;
 }
 function wp_parse_args( $a, $d ) {
 	return array_merge( $d, (array) $a );

@@ -71,7 +71,8 @@ class YS_Admin {
 
 		$status = YS_Settings::engine_status();
 		wp_enqueue_script( 'ys-audio', YS_URL . 'assets/ys-audio.js', array(), YS_VERSION, true );
-		wp_enqueue_script( 'ys-engine', YS_URL . 'assets/ys-engine.js', array(), YS_VERSION, true );
+		wp_enqueue_script( 'ys-piper', YS_URL . 'assets/ys-piper.js', array(), YS_VERSION, true );
+		wp_enqueue_script( 'ys-engine', YS_URL . 'assets/ys-engine.js', array( 'ys-piper' ), YS_VERSION, true );
 		wp_enqueue_script( 'ys-admin', YS_URL . 'assets/admin.js', array( 'ys-audio', 'ys-engine' ), YS_VERSION, true );
 
 		$start = isset( $_GET['ys_start'] ) ? absint( $_GET['ys_start'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- yalnızca otomatik açılacak yazıyı belirtir; işlem REST nonce'u ile yapılır.
@@ -83,6 +84,7 @@ class YS_Admin {
 				'nonce'       => wp_create_nonce( 'wp_rest' ),
 				'engineUrl'   => esc_url_raw( YS_Settings::engine_url() ),
 				'workerUrl'   => esc_url_raw( YS_URL . 'assets/ys-phonemize-worker.js' ),
+				'kind'        => YS_Settings::engine_kind(),
 				'engineReady' => (bool) $status['ready'],
 				'lame'        => (bool) $status['lame'],
 				'maxBytes'    => (int) YS_Settings::max_bytes(),

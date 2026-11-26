@@ -21,7 +21,8 @@ class YS_Engine {
 	const LOCK     = 'ys_engine_lock';
 	const CACHE    = 'ys_engine_manifest';
 
-	const MANIFEST_DEFAULT = 'https://github.com/kinefi/yaziyi-seslendir/releases/download/engine-1/engine-manifest.json';
+	const MANIFEST_DEFAULT     = 'https://github.com/kinefi/yaziyi-seslendir/releases/download/engine-1/engine-manifest.json';
+	const MANIFEST_DEFAULT_ORT = 'https://github.com/kinefi/yaziyi-seslendir/releases/download/engine-2/engine-manifest.json';
 
 	public static function init() {
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
@@ -82,7 +83,7 @@ class YS_Engine {
 	}
 
 	public static function manifest_url(): string {
-		$url = defined( 'YS_ENGINE_MANIFEST_URL' ) ? (string) constant( 'YS_ENGINE_MANIFEST_URL' ) : self::MANIFEST_DEFAULT;
+		$url = defined( 'YS_ENGINE_MANIFEST_URL' ) ? (string) constant( 'YS_ENGINE_MANIFEST_URL' ) : ( 'piper-ort' === YS_Settings::engine_kind() ? self::MANIFEST_DEFAULT_ORT : self::MANIFEST_DEFAULT );
 		return (string) apply_filters( 'ys_engine_manifest_url', $url );
 	}
 
@@ -104,6 +105,9 @@ class YS_Engine {
 		};
 		if ( ! is_array( $data ) || 1 !== ( $data['version'] ?? null ) || ! isset( $data['files'] ) || ! is_array( $data['files'] ) ) {
 			return $fail( 'Manifest biçimi tanınmadı.' );
+		}
+		if ( isset( $data['engine'] ) && YS_Settings::engine_kind() !== $data['engine'] ) {
+			return $fail( 'Manifest başka bir ses motoru içindir (' . ( is_string( $data['engine'] ) ? preg_replace( '/[^A-Za-z0-9._-]/', '', $data['engine'] ) : '?' ) . ').' );
 		}
 		$allowed = YS_Settings::engine_allowed_names();
 		$seen    = array();

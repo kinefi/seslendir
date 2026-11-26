@@ -53,6 +53,16 @@ Other hosts or a different voice: set the `YS_ENGINE_MANIFEST_URL` constant (or 
 
 > **Status note:** the PHP, normalizer, storage, download and UI code is covered by automated tests. The WebAssembly engine itself could not be built in the environment where this release was authored, so the *Build engine pack* workflow is its first real run; its smoke test is what proves the pack works. If the build step fails, open the failing step's log (the sherpa-onnx build script name or asset layout may differ between versions; the `sherpa_ref` input lets you pin a version).
 
+### Alternative engine: ONNX Runtime (`piper-ort`)
+
+Building sherpa-onnx for WebAssembly is the most fragile part of the setup. As an alternative, the plugin can run the Piper model directly with ONNX Runtime Web (no compilation at all):
+
+1. Run **Actions → Build engine pack (ONNX Runtime) → Run workflow** once (publishes release `engine-2`).
+2. Add `define( 'YS_ENGINE_KIND', 'piper-ort' );` to `wp-config.php`.
+3. Use **Kurulum → Otomatik indir ve kur** as usual.
+
+`sherpa` remains the default until the ONNX Runtime pack has been verified. Check the voice's licence before commercial use.
+
 ## Using it
 
 - **Yazılar tab:** status per post (🔊 Var / ⚠️ Eski / ➕ Yok), filters, search, bulk actions.

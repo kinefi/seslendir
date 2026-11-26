@@ -101,17 +101,48 @@ class YS_Settings {
 
 	/* ---------- Ses motoru dosyaları ---------- */
 
-	/** Zorunlu motor dosyaları. */
-	public static function engine_required() {
-		return array(
-			'sherpa-onnx-tts.js',
-			'sherpa-onnx-wasm-main-tts.js',
-			'sherpa-onnx-wasm-main-tts.wasm',
-			'sherpa-onnx-wasm-main-tts.data',
+	/** Desteklenen motor türleri. */
+	const ENGINE_KINDS = array( 'sherpa', 'piper-ort' );
+
+	/**
+	 * Etkin motor türü: "sherpa" (sherpa-onnx WASM) ya da "piper-ort" (ONNX Runtime Web + Piper).
+	 * wp-config.php içinde YS_ENGINE_KIND ile ya da ys_engine_kind süzgeciyle değiştirilir.
+	 */
+	public static function engine_kind() {
+		$kind = defined( 'YS_ENGINE_KIND' ) ? (string) constant( 'YS_ENGINE_KIND' ) : 'sherpa';
+		$kind = (string) apply_filters( 'ys_engine_kind', $kind );
+		return in_array( $kind, self::ENGINE_KINDS, true ) ? $kind : 'sherpa';
+	}
+
+	/** Zorunlu motor dosyaları (etkin motor türüne göre). */
+	public static function engine_required( $kind = null ) {
+		$kind    = null === $kind ? self::engine_kind() : $kind;
+		$phonem  = array(
 			'piper-phonemize.js',
 			'piper-phonemize-wasm-main.js',
 			'piper-phonemize-wasm-main.wasm',
 			'piper-phonemize-wasm-main.data',
+		);
+		if ( 'piper-ort' === $kind ) {
+			return array_merge(
+				array(
+					'ort.wasm.min.js',
+					'ort-wasm-simd-threaded.js',
+					'ort-wasm-simd-threaded.wasm',
+					'voice.onnx',
+					'voice.onnx.json',
+				),
+				$phonem
+			);
+		}
+		return array_merge(
+			array(
+				'sherpa-onnx-tts.js',
+				'sherpa-onnx-wasm-main-tts.js',
+				'sherpa-onnx-wasm-main-tts.wasm',
+				'sherpa-onnx-wasm-main-tts.data',
+			),
+			$phonem
 		);
 	}
 

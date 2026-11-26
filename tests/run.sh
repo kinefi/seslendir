@@ -15,5 +15,6 @@ for f in tests/test_*.php; do echo "-- $f"; php "$f"; done
 
 echo "== JS tests =="
 node tests/audio.test.js
+node tests/piper.test.js
 
 echo "All tests passed."

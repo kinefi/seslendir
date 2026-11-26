@@ -1,11 +1,12 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>Yazıyı Seslendir motor duman testi</title>
+<script src="/assets/ys-piper.js"></script>
 <script src="/assets/ys-engine.js"></script>
 <script>
 // Eklentideki yükleme koduyla (assets/ys-engine.js) motoru yükler ve Türkçe bir cümle seslendirir.
 window.__smoke = null;
-YSEngine.load( { base: '/engine/', worker: '/assets/ys-phonemize-worker.js', ver: 'smoke', lame: false, timeout: 240000 } ).then( function ( tts ) {
+YSEngine.load( { kind: new URLSearchParams( location.search ).get( 'kind' ) || 'sherpa', base: '/engine/', worker: '/assets/ys-phonemize-worker.js', ver: 'smoke', lame: false, timeout: 240000 } ).then( function ( tts ) {
 	return tts.generate( { text: 'Merhaba dünya. Bugün hava çok güzel.', sid: 0, speed: 1 } ).then( function ( audio ) {
 	return { tts: tts, audio: audio };
 	} );

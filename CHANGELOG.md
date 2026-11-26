@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.0] - 2026-11-26
+### Added
+- **Second engine kind, `piper-ort`** (ONNX Runtime Web + the Piper `tr_TR-fettah-medium` model run directly, with `piper-phonemize` for the text front end). No C++/Emscripten build is needed: the new `Build engine pack (ONNX Runtime)` workflow (`build-engine-ort.yml`) only collects prebuilt files (onnxruntime-web from npm, the voice from `rhasspy/piper-voices`, the phonemizer bundle), smoke-tests them in headless Chromium and publishes release `engine-2`.
+- `YS_ENGINE_KIND` constant / `ys_engine_kind` filter selects the engine (`sherpa` stays the default). The manifest carries an `engine` field; a manifest for another engine kind is rejected. The default manifest URL follows the kind (`engine-1` / `engine-2`).
+- `assets/ys-piper.js` (phoneme → model-input helpers, unit-tested), engine-kind tests, `--engine` option for `tools/make-engine-manifest.py`, `tools/engine-smoke.mjs <dir> [kind]`.
+
 ## [1.1.1] - 2026-11-26
 ### Fixed
 - **`Build engine pack` failed at the CMake step** ("No text frontend found"). Current sherpa-onnx no longer uses the voice's `espeak-ng-data`; text must be phonemized separately. The workflow now fetches the `piper-phonemize` WebAssembly bundle (SHA-256 pinned), stages only `model.onnx` and `tokens.txt`, and adds the four `piper-phonemize*` files to the pack.

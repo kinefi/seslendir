@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.3] - 2026-11-27
+### Changed
+- A post edited after its audio was made no longer hides the player. The player is shown with a short note ("Yazı bu ses kaydından sonra güncellendi; kayıt yazının son halini yansıtmayabilir."), which can be changed with the `ys_stale_note` filter.
+
 ## [1.6.2] - 2026-11-27
 ### Fixed
 - The player was hidden for a post whose raw content changed after the audio was made (for example the block editor re-saving the post) even though the text to be read was identical, and the admin list still showed it as current. The front end now uses the same test as the admin list (the normalised text) and refreshes the stored signature when the text is unchanged.

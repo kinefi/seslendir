@@ -57,14 +57,15 @@ class YS_Frontend {
 		if ( post_password_required( $post ) ) {
 			return self::why( $post, 'parola korumali' );
 		}
-		$sig = (string) get_post_meta( $post->ID, YS_Storage::META_SIG, true );
+		$stale = false;
+		$sig   = (string) get_post_meta( $post->ID, YS_Storage::META_SIG, true );
 		if ( ! hash_equals( $sig, YS_Storage::src_sig( $post ) ) ) {
-			// Ham içerik değişmiş olabilir (ör. editör kaydı biçimi değiştirdi) ama okunacak metin aynı kalmış olabilir:
-			// yönetim ekranındaki "Güncel" ölçütüyle denetler, metin aynıysa imzayı tazeler.
-			if ( 'ok' !== YS_Storage::state( $post ) ) {
-				return self::why( $post, 'yazi sesten sonra degismis; sesi yeniden uretin' ); // Eski sesi göstermeyiz.
+			// Ham içerik değişmiş olabilir ama okunacak metin aynıdır: yönetim ekranındaki ölçütle denetler.
+			if ( 'ok' === YS_Storage::state( $post ) ) {
+				update_post_meta( $post->ID, YS_Storage::META_SIG, YS_Storage::src_sig( $post ) );
+			} else {
+				$stale = true; // Yazı sesten sonra güncellenmiş: sesi gizlemeyiz, yalnızca not düşeriz.
 			}
-			update_post_meta( $post->ID, YS_Storage::META_SIG, YS_Storage::src_sig( $post ) );
 		}
 		$url = wp_get_attachment_url( $att );
 		if ( ! $url ) {
@@ -80,6 +81,9 @@ class YS_Frontend {
 		$out  .= '<div class="ys-player" role="group" aria-label="' . esc_attr( $label ) . '">';
 		$out  .= '<span class="ys-label">' . esc_html( $label ) . '</span>';
 		$out  .= '<audio controls preload="none" src="' . esc_url( $url ) . '"></audio>';
+		if ( $stale ) {
+			$out .= '<span class="ys-note" style="display:block;margin-top:.4em;font-size:.85em;opacity:.75">' . esc_html( (string) apply_filters( 'ys_stale_note', 'Yazı bu ses kaydından sonra güncellendi; kayıt yazının son halini yansıtmayabilir.' ) ) . '</span>';
+		}
 		$out  .= '</div>';
 		return $out;
 	}

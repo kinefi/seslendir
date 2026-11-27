@@ -110,7 +110,7 @@ class YS_Settings {
 		return YS_Models::valid_id( (string) apply_filters( 'ys_model', (string) self::get( 'model' ) ) );
 	}
 
-	/** Seçili modelin motor türü: "sherpa", "piper-ort" ya da "okur". */
+	/** Seçili modelin motor türü: "sherpa", "piper-ort", "okur", "ema" ya da "zerre". */
 	public static function engine_kind() {
 		return YS_Models::kind( self::model() );
 	}
@@ -124,6 +124,17 @@ class YS_Settings {
 			'piper-phonemize-wasm-main.wasm',
 			'piper-phonemize-wasm-main.data',
 		);
+		$ort = array(
+			'ort.wasm.min.js',
+			'ort-wasm-simd-threaded.js',
+			'ort-wasm-simd-threaded.wasm',
+		);
+		if ( 'ema' === $kind ) {
+			return array_merge( $ort, array( 'ema-meta.json', 'ema-text.onnx', 'ema-sound.onnx', 'ema-decoder.onnx' ) );
+		}
+		if ( 'zerre' === $kind ) {
+			return array_merge( $ort, array( 'zerre-model.onnx', 'zerre-model.json', 'zerre-lexicon.json' ) );
+		}
 		if ( 'okur' === $kind ) {
 			// Okur TTS: fonemleştirici gerekmez; metin Okur'un kendi Rust/WASM ön yüzünden geçer.
 			return array(
@@ -182,6 +193,24 @@ class YS_Settings {
 	public static function engine_url( $model = null ) {
 		$u = wp_upload_dir();
 		return rtrim( $u['baseurl'], '/' ) . '/seslendir-motor/' . YS_Models::valid_id( null === $model ? self::model() : $model ) . '/';
+	}
+
+	/**
+	 * Tarayıcı/CDN önbelleği için sürüm eki: dosya adı, boyut ve değişme zamanından türer, bu yüzden her yeniden
+	 * indirmede URL değişir (eski .js ile yeni .wasm karışmaz).
+	 */
+	public static function engine_ver( $model = null ) {
+		$dir  = self::engine_dir( $model );
+		$kind = YS_Models::kind( null === $model ? self::model() : $model );
+		$seed = '';
+		clearstatcache();
+		foreach ( self::engine_allowed_names( $kind ) as $name ) {
+			$path = $dir . '/' . $name;
+			if ( is_file( $path ) ) {
+				$seed .= $name . ':' . filesize( $path ) . ':' . filemtime( $path ) . ';';
+			}
+		}
+		return YS_VERSION . '-' . substr( md5( $seed ), 0, 10 );
 	}
 
 	/**

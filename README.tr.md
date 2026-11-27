@@ -40,8 +40,10 @@ Kaynak kod, sorunlar ve sürümler: <https://github.com/kinefi/seslendir>
 | `piper-sherpa` (varsayılan) | sherpa-onnx WebAssembly + Piper `tr_TR-fettah-medium` | En uyumlu, uçtan uca doğrulandı |
 | `piper-ort` | ONNX Runtime Web + aynı Piper sesi | C++ derlemesi yok; daha az sınandı |
 | `okur` | ONNX Runtime Web + [Okur TTS](https://github.com/ahmethakanbesel/okur-tts) | Çoğunlukla daha doğal; ağırlıklar CC BY 4.0 (atıf gerekir); daha az sınandı |
+| `ema` | ONNX Runtime Web + [EMA Lightning](https://huggingface.co/ozcancelik/ema-lightning-onnx) | 48 kHz, tek ses, Apache-2.0; gerçek model dosyalarıyla uçtan uca çalıştırıldı, çıktı referans demoyla aynı |
+| `zerre` | ONNX Runtime Web + [Zerre-TTS](https://huggingface.co/erkint/zerre-tts) | 8,5 MB int8, 24 kHz, iki ses (MK, NK; hoparlör ayarı birini seçer), Apache-2.0; deposundaki eğitim verisi notlarına bakın |
 
-**Proje sahibi, bir kez:** GitHub → **Actions → Build engines → Run workflow** (`models = all` ya da tek model). Her model kendi işinde derlenir, başsız Chromium'da gerçekten Türkçe konuştuğu doğrulanır, ancak ondan sonra `engine-manifest.json` ile birlikte `motor-piper-sherpa`, `motor-piper-ort` ya da `motor-okur` GitHub sürümü olarak yayımlanır. Duman testi başarısızsa hiçbir şey yayımlanmaz.
+**Proje sahibi, bir kez:** GitHub → **Actions → Build engines → Run workflow** (`models = all` ya da tek model). Her model kendi işinde derlenir, başsız Chromium'da gerçekten Türkçe konuştuğu doğrulanır, ancak ondan sonra `engine-manifest.json` ile birlikte `motor-piper-sherpa`, `motor-piper-ort`, `motor-okur`, `motor-ema` ya da `motor-zerre` GitHub sürümü olarak yayımlanır. Duman testi başarısızsa hiçbir şey yayımlanmaz.
 
 **Her site:** **Otomatik indir** düğmesi seçili modelin manifestini okur ve dosyaları küçük, kaldığı yerden devam eden parçalarla indirir; her dosya SHA-256 ile doğrulanır. Sunucunuz GitHub'a ulaşamıyorsa ilgili sürümden `seslendir-motor-<model>.zip` dosyasını indirip **Kurulum** sekmesinden yükleyin ya da dosyaları FTP ile modelin klasörüne kopyalayın.
 
@@ -52,10 +54,14 @@ Modele göre dosyalar (manifest tam olarak bunları listeler, başka bir şey ka
 | `piper-sherpa` | `sherpa-onnx-tts.js`, `sherpa-onnx-wasm-main-tts.js/.wasm/.data`, fonemleştirici (aşağıda) |
 | `piper-ort` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `voice.onnx`, `voice.onnx.json`, fonemleştirici |
 | `okur` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `okur-config.json`, `okur-frontend.wasm`, `okur-text.onnx`, `okur-sample.onnx`, `okur-decoder.onnx` |
+| `ema` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `ema-meta.json`, `ema-text.onnx`, `ema-sound.onnx`, `ema-decoder.onnx` |
+| `zerre` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `zerre-model.onnx`, `zerre-model.json`, `zerre-lexicon.json` |
 | fonemleştirici (Piper modelleri) | `piper-phonemize.js`, `piper-phonemize-wasm-main.js/.wasm/.data` (Türkçe metin → fonem, espeak-ng; Web Worker'da) |
 | isteğe bağlı | `lame.min.js` ([lamejs](https://github.com/zhuker/lamejs), LGPL): ses WAV yerine küçük MP3 kaydedilir |
 
 Başka sunucular için `YS_ENGINE_MANIFEST_URL` (ya da `ys_engine_manifest_url` filtresi) ayarlayın; sunucu GitHub/Hugging Face değilse `ys_engine_allowed_hosts` ile ekleyin. Manifest `https` olmalı, her dosya için SHA-256 taşımalı ve seçili motor türüyle eşleşmelidir. Eski sürümün indirdiği paketler yeni klasöre otomatik taşınır.
+
+**Kurulum** sekmesinde ayrıca **Yeniden indir** (modelin dosyalarını silip baştan indirir) ve **Model dosyalarını temizle** (siler) düğmeleri vardır. Dosya adreslerindeki sürüm eki kurulu dosyalardan türetilir; böylece tarayıcı ya da Cloudflare gibi CDN'ler eski bir betiği yeni `.wasm` ile karıştırmaz.
 
 > **Durum notu:** PHP, normalleştirici, depolama, indirme ve arayüz kodu otomatik testlerle sınanmıştır. Gerçek bir sitede uçtan uca yalnızca `piper-sherpa` paketi çalıştırıldı; `piper-ort` ve `okur` yalnızca iş akışının duman testiyle doğrulanır.
 

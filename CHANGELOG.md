@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.6.0] - 2026-11-27
+### Added
+- Two more models: **EMA Lightning** (`ema`, 48 kHz, Apache-2.0) and **Zerre-TTS** (`zerre`, 24 kHz, two voices, Apache-2.0), both run with ONNX Runtime Web. The workflow `Build engines` publishes `motor-ema` and `motor-zerre`. Both were run end to end on the real model files; the EMA output matches the reference demo's.
+- Kurulum: **Model dosyalarını temizle** button.
+### Fixed
+- **Yeniden indir** did nothing when the files were already complete; it now deletes the model's files first and downloads them again.
+- Engine file URLs now carry a version derived from the installed files (name, size, modification time) instead of the plugin version. A browser or CDN (e.g. Cloudflare) could keep serving an old script next to a re-downloaded `.wasm`, which showed up as `ASM_CONSTS[code] is not a function`.
+- Stale `YS_ENGINE_KIND` mentions removed from the release notes the workflow writes.
+### Changed
+- Default `onnxruntime-web` version in the workflow is 1.30.0 (the version EMA's demo was verified with).
+
 ## [1.5.0] - 2026-11-26
 ### Changed
 - **Model selection moved to the Kurulum tab** (select, then download, in one place). It saves only the model; the Ayarlar form keeps the stored model.

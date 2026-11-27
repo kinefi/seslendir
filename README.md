@@ -40,8 +40,10 @@ Source code, issues and releases: <https://github.com/kinefi/seslendir>
 | `piper-sherpa` (default) | sherpa-onnx WebAssembly + Piper `tr_TR-fettah-medium` | Most compatible, verified end to end |
 | `piper-ort` | ONNX Runtime Web + the same Piper voice | No C++ build; less tested |
 | `okur` | ONNX Runtime Web + [Okur TTS](https://github.com/ahmethakanbesel/okur-tts) | Often more natural; weights are CC BY 4.0 (attribution required); less tested |
+| `ema` | ONNX Runtime Web + [EMA Lightning](https://huggingface.co/ozcancelik/ema-lightning-onnx) | 48 kHz, one voice, Apache-2.0; runs end to end on the real model files with output identical to the reference demo |
+| `zerre` | ONNX Runtime Web + [Zerre-TTS](https://huggingface.co/erkint/zerre-tts) | 8.5 MB int8, 24 kHz, two voices (MK, NK; the speaker setting picks one), Apache-2.0; check the training-data notes in its repository |
 
-**Maintainer, once:** GitHub → **Actions → Build engines → Run workflow** (`models = all`, or one model). Each model is built in its own job, loaded in headless Chromium to check that it really speaks Turkish, and only then published with its `engine-manifest.json` as the GitHub release `motor-piper-sherpa`, `motor-piper-ort` or `motor-okur`. Nothing is published if a smoke test fails.
+**Maintainer, once:** GitHub → **Actions → Build engines → Run workflow** (`models = all`, or one model). Each model is built in its own job, loaded in headless Chromium to check that it really speaks Turkish, and only then published with its `engine-manifest.json` as the GitHub release `motor-piper-sherpa`, `motor-piper-ort`, `motor-okur`, `motor-ema` or `motor-zerre`. Nothing is published if a smoke test fails.
 
 **Every site:** the **Otomatik indir** button reads the selected model's manifest and downloads its files in small resumable chunks, each verified with SHA-256. If your server cannot reach GitHub, download `seslendir-motor-<model>.zip` from that release and upload it in the **Kurulum** tab, or copy the files by FTP to the model's folder.
 
@@ -52,10 +54,14 @@ Files per model (the manifest lists exactly these and nothing else):
 | `piper-sherpa` | `sherpa-onnx-tts.js`, `sherpa-onnx-wasm-main-tts.js/.wasm/.data`, phonemizer (below) |
 | `piper-ort` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `voice.onnx`, `voice.onnx.json`, phonemizer |
 | `okur` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `okur-config.json`, `okur-frontend.wasm`, `okur-text.onnx`, `okur-sample.onnx`, `okur-decoder.onnx` |
+| `ema` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `ema-meta.json`, `ema-text.onnx`, `ema-sound.onnx`, `ema-decoder.onnx` |
+| `zerre` | `ort.wasm.min.js`, `ort-wasm-simd-threaded.js/.wasm`, `zerre-model.onnx`, `zerre-model.json`, `zerre-lexicon.json` |
 | phonemizer (Piper models) | `piper-phonemize.js`, `piper-phonemize-wasm-main.js/.wasm/.data` (Turkish text → phonemes with espeak-ng, in a Web Worker) |
 | optional | `lame.min.js` ([lamejs](https://github.com/zhuker/lamejs), LGPL): audio is saved as small MP3 instead of WAV |
 
 Other hosts: set `YS_ENGINE_MANIFEST_URL` (or the `ys_engine_manifest_url` filter) and, if the host is not GitHub or Hugging Face, add it with `ys_engine_allowed_hosts`. Manifests must be `https`, carry a SHA-256 per file and match the selected engine kind. Packs already downloaded by an older version are moved into the new folder automatically.
+
+The **Kurulum** tab also has **Yeniden indir** (deletes the model's files and downloads them again) and **Model dosyalarını temizle** (deletes them). File URLs carry a version derived from the installed files, so browsers and CDNs such as Cloudflare never mix an old script with a new `.wasm`.
 
 > **Status note:** the PHP, normalizer, storage, download and UI code is covered by automated tests. Only the `piper-sherpa` pack has been run end to end on a real site; the `piper-ort` and `okur` packs are verified by the workflow's smoke test only.
 

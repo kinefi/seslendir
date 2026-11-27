@@ -4,12 +4,14 @@ name: Build engines
 # Türkçe konuştuğunu doğrulayarak sınar ve kendi GitHub sürümü olarak yayımlar. Eklentinin Ayarlar'da seçilen
 # modele göre çalışan "Otomatik indir ve kur" düğmesi bu sürümleri indirir.
 #
-#   GitHub → Actions → "Build engines" → Run workflow   (models = all: üçü birden)
+#   GitHub → Actions → "Build engines" → Run workflow   (models = all: hepsi birden)
 #
 # Sürüm etiketleri includes/class-models.php içindeki 'tag' değerleriyle aynıdır:
 #   motor-piper-sherpa   Piper · fettah, sherpa-onnx (WebAssembly derlemesi, uzun sürer)
 #   motor-piper-ort      Piper · fettah, ONNX Runtime Web (derleme yok)
 #   motor-okur           Okur, ONNX Runtime Web (Rust ön yüzü derlenir)
+#   motor-ema            EMA Lightning, ONNX Runtime Web (hazır ONNX dosyaları, derleme yok)
+#   motor-zerre          Zerre-TTS, ONNX Runtime Web (hazır ONNX dosyası, derleme yok)
 # Bir model başarısız olursa diğerleri yine de yayımlanır; yalnızca testi geçen paket yayımlanır.
 
 on:
@@ -24,9 +26,11 @@ on:
           - piper-sherpa
           - piper-ort
           - okur
+          - ema
+          - zerre
       ort_version:
-        description: 'onnxruntime-web sürümü (npm) — piper-ort ve okur'
-        default: '1.22.0'
+        description: 'onnxruntime-web sürümü (npm) — piper-ort, okur, ema ve zerre'
+        default: '1.30.0'
         required: true
       sherpa_ref:
         description: 'piper-sherpa: sherpa-onnx dalı ya da etiketi'
@@ -51,6 +55,14 @@ on:
       ort_voice_config:
         description: 'piper-ort: yapılandırma dosyası (speaches-ai deposunda config.json)'
         default: 'tr_TR-fettah-medium.onnx.json'
+        required: true
+      ema_ref:
+        description: 'ema: ozcancelik/ema-lightning-web dalı ya da commit (ONNX dosyaları burada)'
+        default: 'main'
+        required: true
+      zerre_ref:
+        description: 'zerre: erkinemreta1/zerre-tts dalı ya da commit (web/public içindeki model, sözlük)'
+        default: 'main'
         required: true
       okur_ref:
         description: 'okur: okur-tts deposundan derlenecek git sürümü'
@@ -268,7 +280,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTES="Seslendir motor paketi (ONNX Runtime Web ${ORT_VERSION} + Piper, ${VOICE_REPO}). wp-config.php içinde define( 'YS_ENGINE_KIND', 'piper-ort' ); ile kullanılır; seslendir-motor-piper-ort.zip elle kurulum içindir."
+          NOTES="Seslendir motor paketi (ONNX Runtime Web ${ORT_VERSION} + Piper, ${VOICE_REPO}). wp-config.php içinde seslendir-motor-piper-ort.zip elle kurulum içindir."
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
@@ -370,9 +382,180 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTES="Yazıyı Seslendir motor paketi: Okur TTS (okur-tts ${OKUR_REF}, ağırlıklar ${MODEL_REPO}) + ONNX Runtime Web ${ORT_VERSION}. Kod Apache-2.0, ağırlıklar CC BY 4.0: atıf 'okur' ve eğitim derlemleri (bkz. https://github.com/ahmethakanbesel/okur-tts/blob/main/NOTICE). wp-config.php içinde define( 'YS_ENGINE_KIND', 'okur' ); ile kullanılır; seslendir-motor-okur.zip elle kurulum içindir."
+          NOTES="Yazıyı Seslendir motor paketi: Okur TTS (okur-tts ${OKUR_REF}, ağırlıklar ${MODEL_REPO}) + ONNX Runtime Web ${ORT_VERSION}. Kod Apache-2.0, ağırlıklar CC BY 4.0: atıf 'okur' ve eğitim derlemleri (bkz. https://github.com/ahmethakanbesel/okur-tts/blob/main/NOTICE). seslendir-motor-okur.zip elle kurulum içindir."
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
             gh release create "$TAG" dist/* --title "Model: Okur ($TAG)" --notes "$NOTES" --latest=false
+          fi
+
+  ema:
+    name: EMA Lightning (ONNX Runtime)
+    if: ${{ inputs.models == 'all' || inputs.models == 'ema' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: build-engines-ema
+      cancel-in-progress: false
+    env:
+      TAG: motor-ema
+      ORT_VERSION: ${{ inputs.ort_version }}
+      EMA_REF: ${{ inputs.ema_ref }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+
+      - name: Get ONNX Runtime Web
+        run: |
+          mkdir -p dist ort && cd ort
+          npm pack "onnxruntime-web@${ORT_VERSION}" --silent
+          tar -xzf onnxruntime-web-*.tgz
+          pick() { find package/dist -maxdepth 1 -name "$1" -print -quit; }
+          JS="$(pick 'ort.wasm.min.js')"
+          MJS="$(pick 'ort-wasm-simd-threaded.mjs')"
+          WASM="$(pick 'ort-wasm-simd-threaded.wasm')"
+          test -n "$JS" -a -n "$MJS" -a -n "$WASM" || { echo "::error::onnxruntime-web paketinde beklenen dosyalar yok."; exit 1; }
+          cp "$JS" ../dist/ort.wasm.min.js
+          cp "$MJS" ../dist/ort-wasm-simd-threaded.js
+          cp "$WASM" ../dist/ort-wasm-simd-threaded.wasm
+
+      - name: Get the EMA Lightning ONNX files
+        run: |
+          git clone https://github.com/ozcancelik/ema-lightning-web.git ema-src
+          git -C ema-src checkout "$EMA_REF"
+          git -C ema-src log -1 --format='ema-lightning-web %h %s'
+          M=ema-src/models
+          cp "$M/meta.json" dist/ema-meta.json
+          cp "$M/text.onnx" dist/ema-text.onnx
+          cp "$M/sound.onnx" dist/ema-sound.onnx
+          cp "$M/decoder.onnx" dist/ema-decoder.onnx
+          python3 - <<'PY'
+          import json
+          m = json.load(open('dist/ema-meta.json', encoding='utf-8'))
+          for k in ('vocab', 'times', 'latent_dim', 'hop', 'sample_rate'):
+              assert k in m, f'meta.{k} yok'
+          print('örnekleme hızı:', m['sample_rate'], 'adım:', len(m['times']), 'gizli boyut:', m['latent_dim'])
+          PY
+          ls -la dist
+
+      - name: Add the optional MP3 encoder (lamejs, LGPL)
+        run: |
+          mkdir lame && cd lame
+          npm pack lamejs --silent || true
+          tar -xzf lamejs-*.tgz 2>/dev/null || true
+          LAME="$(find . -name 'lame.min.js' -print -quit)"
+          if [ -n "$LAME" ]; then cp "$LAME" ../dist/lame.min.js; echo "lame.min.js eklendi"; else echo "::warning::lame.min.js bulunamadı; ses WAV olarak kaydedilecek."; fi
+
+      - name: Smoke test (headless Chromium speaks Turkish with the pack)
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          node tools/engine-smoke.mjs dist ema
+
+      - name: Manifest and manual-install zip
+        run: |
+          python3 tools/make-engine-manifest.py dist "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" --engine ema --voice "EMA Lightning"
+          (cd dist && zip -q ../seslendir-motor-ema.zip ort* ema-* $(ls lame.min.js 2>/dev/null))
+          mv seslendir-motor-ema.zip dist/
+          ls -la dist
+          cat dist/engine-manifest.json
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Seslendir motor paketi: EMA Lightning (ağırlıklar canberkkkkkk/ema-lightning, ONNX dönüşümü ozcancelik/ema-lightning-web ${EMA_REF}, Apache-2.0) + ONNX Runtime Web ${ORT_VERSION}. seslendir-motor-ema.zip elle kurulum içindir."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --title "Model: EMA Lightning ($TAG)" --notes "$NOTES" --latest=false
+          fi
+
+  zerre:
+    name: Zerre-TTS (ONNX Runtime)
+    if: ${{ inputs.models == 'all' || inputs.models == 'zerre' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: build-engines-zerre
+      cancel-in-progress: false
+    env:
+      TAG: motor-zerre
+      ORT_VERSION: ${{ inputs.ort_version }}
+      ZERRE_REF: ${{ inputs.zerre_ref }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+
+      - name: Get ONNX Runtime Web
+        run: |
+          mkdir -p dist ort && cd ort
+          npm pack "onnxruntime-web@${ORT_VERSION}" --silent
+          tar -xzf onnxruntime-web-*.tgz
+          pick() { find package/dist -maxdepth 1 -name "$1" -print -quit; }
+          JS="$(pick 'ort.wasm.min.js')"
+          MJS="$(pick 'ort-wasm-simd-threaded.mjs')"
+          WASM="$(pick 'ort-wasm-simd-threaded.wasm')"
+          test -n "$JS" -a -n "$MJS" -a -n "$WASM" || { echo "::error::onnxruntime-web paketinde beklenen dosyalar yok."; exit 1; }
+          cp "$JS" ../dist/ort.wasm.min.js
+          cp "$MJS" ../dist/ort-wasm-simd-threaded.js
+          cp "$WASM" ../dist/ort-wasm-simd-threaded.wasm
+
+      - name: Get the Zerre-TTS model, config and lexicon
+        run: |
+          git clone https://github.com/erkinemreta1/zerre-tts.git zerre-src
+          git -C zerre-src checkout "$ZERRE_REF"
+          git -C zerre-src log -1 --format='zerre-tts %h %s'
+          W=zerre-src/web/public
+          cp "$W/model.onnx" dist/zerre-model.onnx
+          cp "$W/model.json" dist/zerre-model.json
+          cp "$W/lexicon-tr.json" dist/zerre-lexicon.json
+          python3 - <<'PY'
+          import json
+          c = json.load(open('dist/zerre-model.json', encoding='utf-8'))
+          for k in ('sample_rate', 'voices', 'symbols', 'max_tokens'):
+              assert k in c, f'model.json.{k} yok'
+          lex = json.load(open('dist/zerre-lexicon.json', encoding='utf-8'))
+          assert 'words' in lex and 'symbols' in lex, 'sözlük biçimi beklenenden farklı'
+          print('örnekleme hızı:', c['sample_rate'], 'sesler:', c['voices'], 'sözlük:', len(lex['words']), 'kelime')
+          PY
+          ls -la dist
+
+      - name: Add the optional MP3 encoder (lamejs, LGPL)
+        run: |
+          mkdir lame && cd lame
+          npm pack lamejs --silent || true
+          tar -xzf lamejs-*.tgz 2>/dev/null || true
+          LAME="$(find . -name 'lame.min.js' -print -quit)"
+          if [ -n "$LAME" ]; then cp "$LAME" ../dist/lame.min.js; echo "lame.min.js eklendi"; else echo "::warning::lame.min.js bulunamadı; ses WAV olarak kaydedilecek."; fi
+
+      - name: Smoke test (headless Chromium speaks Turkish with the pack)
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          node tools/engine-smoke.mjs dist zerre
+
+      - name: Manifest and manual-install zip
+        run: |
+          python3 tools/make-engine-manifest.py dist "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" --engine zerre --voice "Zerre-TTS"
+          (cd dist && zip -q ../seslendir-motor-zerre.zip ort* zerre-* $(ls lame.min.js 2>/dev/null))
+          mv seslendir-motor-zerre.zip dist/
+          ls -la dist
+          cat dist/engine-manifest.json
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Seslendir motor paketi: Zerre-TTS (erkinemreta1/zerre-tts ${ZERRE_REF}, Apache-2.0, int8 ONNX) + ONNX Runtime Web ${ORT_VERSION}. Eğitim verisi kaynakları için depodaki docs/data_sources.md dosyasına bakın. seslendir-motor-zerre.zip elle kurulum içindir."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --title "Model: Zerre-TTS ($TAG)" --notes "$NOTES" --latest=false
           fi

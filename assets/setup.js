@@ -74,6 +74,7 @@
 	var info = h( 'p', { 'class': 'ys-setup-info', 'aria-live': 'polite' } );
 	var bar = h( 'progress', { max: '100', value: '0', 'class': 'ys-bar', hidden: true } );
 	var err = h( 'p', { 'class': 'ys-setup-error', role: 'alert' } );
+	var installed = false;
 	var mode = 'check'; // 'check' = bilgiyi yeniden al, 'run' = indirmeyi başlat.
 	var go = h( 'button', { type: 'button', 'class': 'button button-primary', disabled: true, text: 'Kontrol ediliyor…', onclick: onGo } );
 	var stop = h( 'button', { type: 'button', 'class': 'button', hidden: true, onclick: stopRun, text: 'Durdur' } );
@@ -83,15 +84,42 @@
 	host.appendChild( info );
 	host.appendChild( bar );
 	host.appendChild( err );
-	host.appendChild( h( 'p', null, go, ' ', stop, ' ', reset ) );
+	var wipe = h( 'button', { type: 'button', 'class': 'button button-link-delete', hidden: true, onclick: doWipe, text: 'Model dosyalarını temizle' } );
+	host.appendChild( h( 'p', null, go, ' ', stop, ' ', reset, ' ', wipe ) );
 
 	function onGo() {
 		if ( mode === 'check' ) {
 			go.disabled = true;
 			loadStatus( true );
+		} else if ( installed ) {
+			// "Yeniden indir": mevcut dosyalar önce silinir; yoksa sunucu "zaten tam" deyip hiçbir şey indirmezdi.
+			if ( ! window.confirm( 'Bu modelin dosyaları silinip baştan indirilsin mi?' ) ) {
+				return;
+			}
+			go.disabled = true;
+			api( 'POST', 'engine/clear' ).then( function () {
+				installed = false;
+				start();
+			}, function ( e ) {
+				err.textContent = e.message;
+				go.disabled = false;
+			} );
 		} else {
 			start();
 		}
+	}
+
+	function doWipe() {
+		if ( ! window.confirm( 'Seçili modelin indirilmiş tüm dosyaları silinsin mi? Üretilmiş sesler etkilenmez; ses üretmek için modeli yeniden indirmeniz gerekir.' ) ) {
+			return;
+		}
+		wipe.disabled = true;
+		api( 'POST', 'engine/clear' ).then( function () {
+			window.location.reload();
+		}, function ( e ) {
+			err.textContent = e.message;
+			wipe.disabled = false;
+		} );
 	}
 
 	function onBeforeUnload( e ) {
@@ -126,6 +154,9 @@
 		return api( 'GET', 'engine/status' + ( refresh ? '?refresh=1' : '' ) ).then( function ( s ) {
 			if ( ! s.manifest ) {
 				info.textContent = s.ready ? 'Motor kurulu.' : 'Motor kurulu değil.';
+				wipe.hidden = ! Object.keys( s.files || {} ).some( function ( k ) {
+					return s.files[ k ] > 0;
+				} );
 				err.textContent = s.error || '';
 				mode = 'check';
 				go.disabled = false;
@@ -133,6 +164,11 @@
 				return;
 			}
 			mode = 'run';
+			installed = !! s.ready;
+			var anyFile = Object.keys( s.files || {} ).some( function ( k ) {
+				return s.files[ k ] > 0;
+			} );
+			wipe.hidden = ! anyFile;
 			var m = s.manifest;
 			var hasPartial = m.progress.total_done > 0 && ! m.progress.done;
 			info.textContent = ( s.ready ? 'Motor kurulu. ' : '' ) + 'Paket: ' + ( m.voice || 'Türkçe ses' ) + ', ' + m.count + ' dosya, ' + mb( m.total ) + '.' +

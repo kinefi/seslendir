@@ -74,7 +74,9 @@ class YS_Admin {
 		wp_enqueue_script( 'ys-audio', YS_URL . 'assets/ys-audio.js', array(), YS_VERSION, true );
 		wp_enqueue_script( 'ys-piper', YS_URL . 'assets/ys-piper.js', array(), YS_VERSION, true );
 		wp_enqueue_script( 'ys-okur', YS_URL . 'assets/ys-okur.js', array(), YS_VERSION, true );
-		wp_enqueue_script( 'ys-engine', YS_URL . 'assets/ys-engine.js', array( 'ys-piper', 'ys-okur' ), YS_VERSION, true );
+		wp_enqueue_script( 'ys-ema', YS_URL . 'assets/ys-ema.js', array(), YS_VERSION, true );
+		wp_enqueue_script( 'ys-zerre', YS_URL . 'assets/ys-zerre.js', array(), YS_VERSION, true );
+		wp_enqueue_script( 'ys-engine', YS_URL . 'assets/ys-engine.js', array( 'ys-piper', 'ys-okur', 'ys-ema', 'ys-zerre' ), YS_VERSION, true );
 		wp_enqueue_script( 'ys-admin', YS_URL . 'assets/admin.js', array( 'ys-audio', 'ys-engine' ), YS_VERSION, true );
 
 		$start = isset( $_GET['ys_start'] ) ? absint( $_GET['ys_start'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- yalnızca otomatik açılacak yazıyı belirtir; işlem REST nonce'u ile yapılır.
@@ -91,7 +93,7 @@ class YS_Admin {
 				'lame'        => (bool) $status['lame'],
 				'maxBytes'    => (int) YS_Settings::max_bytes(),
 				'confirm'     => (bool) YS_Settings::get( 'confirm' ),
-				'ver'         => YS_VERSION,
+				'ver'         => YS_Settings::engine_ver(),
 				'startId'     => $start,
 				'setupUrl'    => esc_url_raw( self::page_url( array( 'tab' => 'kurulum' ) ) ),
 				'canSetup'    => current_user_can( 'manage_options' ),

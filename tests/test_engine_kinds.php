@@ -102,21 +102,55 @@ t( 'okur: dosya sayısı', count( $req ), 8 );
 t( 'okur: varsayılan manifest motor-okur', false !== strpos( YS_Engine::manifest_url(), '/motor-okur/' ) );
 t( 'okur manifesti geçerli', YS_Engine::validate_manifest( manifest_for( 'okur' ) )['ok'] );
 t( 'okur iken piper-ort manifesti reddedilir', YS_Engine::validate_manifest( manifest_for( 'piper-ort' ) )['ok'], false );
+
+// ema ve zerre.
+foreach ( array(
+	'ema'   => array( 'ema-meta.json', 'ema-text.onnx', 'ema-sound.onnx', 'ema-decoder.onnx' ),
+	'zerre' => array( 'zerre-model.onnx', 'zerre-model.json', 'zerre-lexicon.json' ),
+) as $id => $own ) {
+	$GLOBALS['ys_test_filters']['ys_model'] = $id;
+	t( "$id türü", YS_Settings::engine_kind(), $id );
+	$req = YS_Settings::engine_required();
+	foreach ( array_merge( $own, array( 'ort.wasm.min.js', 'ort-wasm-simd-threaded.js', 'ort-wasm-simd-threaded.wasm' ) ) as $f ) {
+		t( "$id: $f zorunlu", in_array( $f, $req, true ) );
+	}
+	t( "$id: fonemleştirici gerekmez", in_array( 'piper-phonemize.js', $req, true ), false );
+	t( "$id: dosya sayısı", count( $req ), count( $own ) + 3 );
+	t( "$id: varsayılan manifest motor-$id", false !== strpos( YS_Engine::manifest_url(), "/motor-$id/" ) );
+	t( "$id manifesti geçerli", YS_Engine::validate_manifest( manifest_for( $id ) )['ok'] );
+	t( "$id iken okur manifesti reddedilir", YS_Engine::validate_manifest( manifest_for( 'okur' ) )['ok'], false );
+	t( "$id: ayar kaydedilir", YS_Settings::sanitize( array( 'model' => $id ) )['model'], $id );
+}
+$GLOBALS['ys_test_filters']['ys_model'] = 'okur';
 $GLOBALS['ys_test_filters']['ys_model'] = 'piper-sherpa';
 t( 'sherpa iken okur manifesti reddedilir', YS_Engine::validate_manifest( manifest_for( 'okur' ) )['ok'], false );
 
 // Model kaydı ve model başına klasör/durum.
 $GLOBALS['ys_test_filters']['ys_model'] = 'piper-sherpa';
-t( 'üç model kayıtlı', YS_Models::ids(), array( 'piper-sherpa', 'piper-ort', 'okur' ) );
+t( 'beş model kayıtlı', YS_Models::ids(), array( 'piper-sherpa', 'piper-ort', 'okur', 'ema', 'zerre' ) );
 t( 'geçersiz kimlik varsayılana düşer', YS_Models::valid_id( '../x' ), 'piper-sherpa' );
-t( 'tür eşlemesi', array( YS_Models::kind( 'piper-sherpa' ), YS_Models::kind( 'piper-ort' ), YS_Models::kind( 'okur' ) ), array( 'sherpa', 'piper-ort', 'okur' ) );
+t( 'tür eşlemesi', array_map( array( 'YS_Models', 'kind' ), YS_Models::ids() ), array( 'sherpa', 'piper-ort', 'okur', 'ema', 'zerre' ) );
 foreach ( YS_Models::all() as $id => $m ) {
 	foreach ( array( 'label', 'kind', 'tag', 'size', 'description', 'license', 'url' ) as $key ) {
 		t( "$id: $key dolu", is_string( $m[ $key ] ) && '' !== $m[ $key ] );
 	}
 	t( "$id: manifest adresi https ve etiketli", 0 === strpos( YS_Models::manifest_url( $id ), 'https://github.com/kinefi/seslendir/releases/download/' . $m['tag'] . '/' ) );
 }
-t( 'her modelin ayrı klasörü', count( array_unique( array_map( array( 'YS_Settings', 'engine_dir' ), YS_Models::ids() ) ) ), 3 );
+t( 'her modelin ayrı klasörü', count( array_unique( array_map( array( 'YS_Settings', 'engine_dir' ), YS_Models::ids() ) ) ), 5 );
+
+// Sürüm eki: dosyalar değişince değişir (önbellek karışmasın), içerik yoksa sabit kalır.
+$d = YS_Settings::engine_dir( 'ema' );
+@mkdir( $d, 0777, true );
+$v0 = YS_Settings::engine_ver( 'ema' );
+t( 'engine_ver: eklenti sürümüyle başlar ve ≤ 40 karakter', 0 === strpos( $v0, YS_VERSION . '-' ) && strlen( $v0 ) <= 40 );
+t( 'engine_ver: URL için güvenli', 1 === preg_match( '/^[A-Za-z0-9._-]{1,40}$/', $v0 ) );
+file_put_contents( $d . '/ema-meta.json', '{}' );
+$v1 = YS_Settings::engine_ver( 'ema' );
+t( 'engine_ver: dosya eklenince değişir', $v1 !== $v0 );
+file_put_contents( $d . '/ema-meta.json', '{"a":1}' );
+t( 'engine_ver: dosya değişince değişir', YS_Settings::engine_ver( 'ema' ) !== $v1 );
+t( 'engine_ver: başka model etkilenmez', YS_Settings::engine_ver( 'zerre' ) === YS_Settings::engine_ver( 'zerre' ) );
+@unlink( $d . '/ema-meta.json' );
 t( 'url modele göre', false !== strpos( YS_Settings::engine_url( 'piper-ort' ), '/seslendir-motor/piper-ort/' ) );
 t( 'durum modele göre: okur dosya listesi', array_keys( YS_Settings::engine_status( 'okur' )['files'] ), YS_Settings::engine_allowed_names( 'okur' ) );
 t( 'durum: boş klasör hazır değil', YS_Settings::engine_status( 'okur' )['ready'], false );

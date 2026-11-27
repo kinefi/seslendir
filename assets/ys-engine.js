@@ -261,6 +261,142 @@
 		};
 	}
 
+	var i64of = function ( a ) {
+		return BigInt64Array.from( a, function ( x ) {
+			return BigInt( x );
+		} );
+	};
+
+	/** EMA Lightning (kind: "ema"): metin → süre/gizli grafikleri → pencere pencere çözücü. */
+	async function startEma( base, v ) {
+		var ort = await setupOrt( base, v );
+		var E = root.YSEma;
+		var meta = JSON.parse( new TextDecoder().decode( await fetchBytes( base + 'ema-meta.json' + v ) ) );
+		var got = await Promise.all( [
+			fetchBytes( base + 'ema-text.onnx' + v ),
+			fetchBytes( base + 'ema-sound.onnx' + v ),
+			fetchBytes( base + 'ema-decoder.onnx' + v )
+		] );
+		var opts = { executionProviders: [ 'wasm' ], graphOptimizationLevel: 'all' };
+		var made = await Promise.all( got.map( function ( b ) {
+			return ort.InferenceSession.create( b, opts );
+		} ) );
+		var sessions = { text: made[ 0 ], sound: made[ 1 ], decoder: made[ 2 ] };
+		var rate = meta.sample_rate || 48000;
+		var steps = meta.times.length;
+		var dim = meta.latent_dim;
+		var hop = meta.hop;
+		var stoi = new Map( meta.vocab.map( function ( ch, i ) {
+			return [ ch, i ];
+		} ) );
+		var alpha = new Set( meta.vocab.filter( function ( x ) {
+			return x.length === 1;
+		} ) );
+
+		async function one( piece, speed, seed ) {
+			var chars = Array.from( piece );
+			var ids = chars.map( function ( c ) {
+				return stoi.has( c ) ? stoi.get( c ) : 1;
+			} );
+			var w = E.words( piece );
+			var text = await sessions.text.run( { ids: new ort.Tensor( 'int64', i64of( ids ), [ 1, ids.length ] ) } );
+			var p = E.plan( w.cw, w.wstart, text.dur.data, speed );
+			if ( ! p.T ) {
+				return [];
+			}
+			var sound = await sessions.sound.run( {
+				h: text.h,
+				cg: new ort.Tensor( 'float32', p.cg, [ 1, p.cg.length ] ),
+				fg: new ort.Tensor( 'float32', p.fg, [ 1, p.T ] ),
+				cw: new ort.Tensor( 'int64', i64of( w.cw ), [ 1, w.cw.length ] ),
+				fw: new ort.Tensor( 'int64', i64of( p.fw ), [ 1, p.T ] ),
+				noise: new ort.Tensor( 'float32', E.gaussian( seed, steps * p.T * dim ), [ 1, steps, p.T, dim ] )
+			} );
+			var lat = sound.latents.data; // [T, D]
+			var out = [];
+			var spans = E.windows( p.T, E.FIRST_WINDOW );
+			for ( var i = 0; i < spans.length; i++ ) {
+				var s = spans[ i ][ 0 ];
+				var e = spans[ i ][ 1 ];
+				var a = Math.max( 0, s - E.CONTEXT );
+				var b = Math.min( p.T, e + E.CONTEXT );
+				var n = b - a;
+				var z = new Float32Array( dim * n );
+				for ( var f = 0; f < n; f++ ) {
+					for ( var d = 0; d < dim; d++ ) {
+						z[ d * n + f ] = lat[ ( a + f ) * dim + d ];
+					}
+				}
+				var dec = await sessions.decoder.run( { z: new ort.Tensor( 'float32', z, [ 1, dim, n ] ) } );
+				out.push( Float32Array.from( dec.audio.data.slice( ( s - a ) * hop, ( e - a ) * hop ) ) );
+			}
+			return out;
+		}
+
+		return {
+			sampleRate: rate,
+			numSpeakers: 1,
+			speak: async function ( text, speed ) {
+				var pieces = E.chunk( E.alphabet( text, alpha ), speed );
+				var parts = [];
+				for ( var k = 0; k < pieces.length; k++ ) {
+					// Tohum parça sırasına bağlı: aynı metin her seferinde aynı sesi verir.
+					var wins = await one( pieces[ k ][ 0 ], speed > 0.1 ? speed : 1, k );
+					wins.forEach( function ( w ) {
+						parts.push( w );
+					} );
+					if ( pieces[ k ][ 1 ] ) {
+						parts.push( new Float32Array( Math.round( pieces[ k ][ 1 ] * rate ) ) );
+					}
+				}
+				return root.YSPiper.joinSentences( parts, 0 );
+			}
+		};
+	}
+
+	/** Zerre-TTS (kind: "zerre"): sözlük + kural fonemleştirme, tek ONNX grafiği, iki ses. */
+	async function startZerre( base, v ) {
+		var ort = await setupOrt( base, v );
+		var Z = root.YSZerre;
+		var dec = new TextDecoder();
+		var config = JSON.parse( dec.decode( await fetchBytes( base + 'zerre-model.json' + v ) ) );
+		var lexicon = JSON.parse( dec.decode( await fetchBytes( base + 'zerre-lexicon.json' + v ) ) );
+		var session = await ort.InferenceSession.create( await fetchBytes( base + 'zerre-model.onnx' + v ), { executionProviders: [ 'wasm' ], graphOptimizationLevel: 'all' } );
+		var symbols = lexicon.symbols || config.symbols;
+		var rate = config.sample_rate || 24000;
+		var maxTokens = config.max_tokens || 512;
+		var voices = ( config.voices || [ 'MK' ] ).length;
+		var scalar = function ( x ) {
+			return new ort.Tensor( 'float32', Float32Array.from( [ x ] ), [ 1 ] );
+		};
+
+		return {
+			sampleRate: rate,
+			numSpeakers: voices,
+			speak: async function ( text, sid, speed ) {
+				var parts = [];
+				var list = Z.sentences( text );
+				for ( var i = 0; i < list.length; i++ ) {
+					var ph = Z.phonemize( list[ i ], lexicon, symbols );
+					if ( ph.ids.length < 3 || ph.ids.length > maxTokens ) {
+						continue;
+					}
+					var n = ph.ids.length;
+					var out = await session.run( {
+						tokens: new ort.Tensor( 'int64', i64of( ph.ids ), [ 1, n ] ),
+						stress: new ort.Tensor( 'int64', i64of( ph.stress ), [ 1, n ] ),
+						voice: new ort.Tensor( 'int64', i64of( [ Math.min( Math.max( sid | 0, 0 ), voices - 1 ) ] ), [ 1 ] ),
+						speed: scalar( speed > 0.1 ? speed : 1 ),
+						pitch_shift: scalar( 0 ),
+						pitch_range: scalar( 1 )
+					} );
+					parts.push( Float32Array.from( out.audio.data ) );
+				}
+				return Z.limitPeak( root.YSPiper.joinSentences( parts, Math.round( rate * 0.12 ) ) );
+			}
+		};
+	}
+
 	function load( opts ) {
 		opts = opts || {};
 		return new Promise( function ( resolve, reject ) {
@@ -272,9 +408,10 @@
 
 			var isOrt = 'piper-ort' === opts.kind;
 			var isOkur = 'okur' === opts.kind;
+			var own = { okur: startOkur, ema: startEma, zerre: startZerre }[ opts.kind ];
 			var jobs;
-			if ( isOkur ) {
-				jobs = [ startOkur( base, v ), Promise.resolve( null ) ];
+			if ( own ) {
+				jobs = [ own( base, v ), Promise.resolve( null ) ];
 			} else {
 				jobs = [ isOrt ? startOrt( base, v ) : startSherpa( base, v ), startPhonemizer( opts, base, v ) ];
 			}
@@ -286,12 +423,12 @@
 				clearTimeout( timer );
 				var tts = r[ 0 ];
 				var ph = r[ 1 ];
-				if ( isOkur ) {
+				if ( own ) {
 					resolve( {
 						sampleRate: tts.sampleRate,
-						numSpeakers: 1,
+						numSpeakers: tts.numSpeakers,
 						generate: async function ( cfg ) {
-							var pcm = await tts.speak( cfg.text, cfg.speed || 1.0 );
+							var pcm = 'zerre' === opts.kind ? await tts.speak( cfg.text, cfg.sid || 0, cfg.speed || 1.0 ) : await tts.speak( cfg.text, cfg.speed || 1.0 );
 							return { samples: pcm, sampleRate: tts.sampleRate };
 						}
 					} );

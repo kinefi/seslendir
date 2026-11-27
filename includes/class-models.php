@@ -5,7 +5,7 @@ defined( 'ABSPATH' ) || exit;
  * Desteklenen ses modelleri. Ayarlar sayfasında bu liste gösterilir; Kurulum sekmesi seçili modelin paketini indirir.
  * Her modelin kendi motor klasörü ve kendi GitHub sürümü (etiketi) vardır; .github/workflows/build-engines.yml hepsini üretir.
  *
- * kind: "sherpa" (sherpa-onnx WASM), "piper-ort" (ONNX Runtime Web + Piper) ya da "okur" (ONNX Runtime Web + Okur).
+ * kind: "sherpa" (sherpa-onnx WASM) ya da ONNX Runtime Web ile "piper-ort", "okur", "ema", "zerre".
  */
 class YS_Models {
 
@@ -43,6 +43,24 @@ class YS_Models {
 				'description' => 'Okur: küçük, açık lisanslı Türkçe model (tek ses, 48 kHz). Tek iş parçacığıyla çalıştığı için Piper\'dan yavaş olabilir.',
 				'license'     => 'Kod Apache-2.0, ağırlıklar CC BY 4.0 (atıf gerekir: okur, Ahmet Hakan Beşel; Mozilla Common Voice, ISSAI Turkish Speech Corpus, MediaSpeech, Google FLEURS). Sesi gerçek bir kişiyi taklit etmek ya da insan sesi gibi sunmak için kullanmayın.',
 				'url'         => 'https://huggingface.co/ahakan/okur-tts',
+			),
+			'ema'          => array(
+				'label'       => 'EMA Lightning (ONNX Runtime)',
+				'kind'        => 'ema',
+				'tag'         => 'motor-ema',
+				'size'        => '≈ 52 MB',
+				'description' => 'EMA Lightning: küçük (8,6 milyon parametre), 48 kHz Türkçe model; sayıları ve tarihleri okuyan bir metin ön yüzü ile birlikte gelir. Tek ses.',
+				'license'     => 'Apache-2.0 (ağırlıklar: canberkkkkkk/ema-lightning; ONNX dönüşümü: ozcancelik/ema-lightning-web).',
+				'url'         => 'https://huggingface.co/ozcancelik/ema-lightning-onnx',
+			),
+			'zerre'        => array(
+				'label'       => 'Zerre-TTS (ONNX Runtime)',
+				'kind'        => 'zerre',
+				'tag'         => 'motor-zerre',
+				'size'        => '≈ 28 MB',
+				'description' => 'Zerre-TTS: çok küçük (8,5 MB, int8), 24 kHz, iki sabit ses (MK, NK). Sözlük ve kural tabanlı fonemleştirme kullanır.',
+				'license'     => 'Apache-2.0. Eğitim verisi kaynaklarını ve kısıtlarını model sayfasından kontrol edin.',
+				'url'         => 'https://huggingface.co/erkint/zerre-tts',
 			),
 		);
 	}

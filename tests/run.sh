@@ -17,5 +17,7 @@ echo "== JS tests =="
 node tests/audio.test.js
 node tests/piper.test.js
 node tests/okur.test.js
+node tests/ema.test.js
+node tests/zerre.test.js
 
 echo "All tests passed."

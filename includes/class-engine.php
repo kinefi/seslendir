@@ -73,6 +73,15 @@ class YS_Engine {
 		);
 		register_rest_route(
 			self::NS,
+			'/engine/clear',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'rest_clear' ),
+				'permission_callback' => $perm,
+			)
+		);
+		register_rest_route(
+			self::NS,
 			'/engine/cancel',
 			array(
 				'methods'             => 'POST',
@@ -329,6 +338,28 @@ class YS_Engine {
 			);
 		}
 		return rest_ensure_response( $out );
+	}
+
+	/** Seçili modelin indirilmiş dosyalarını (ve yarım parçaları) siler; başka modellere dokunmaz. */
+	public static function rest_clear() {
+		if ( get_transient( self::LOCK ) ) {
+			return new WP_Error( 'ys_busy', 'Bir indirme sürüyor. Birkaç saniye bekleyin.', array( 'status' => 409 ) );
+		}
+		$dir     = YS_Settings::engine_dir();
+		$allowed = YS_Settings::engine_allowed_names();
+		$removed = 0;
+		foreach ( (array) glob( $dir . '/*' ) as $path ) {
+			$base = basename( $path );
+			if ( ! is_file( $path ) ) {
+				continue;
+			}
+			if ( in_array( $base, $allowed, true ) || ( '.part' === substr( $base, -5 ) && in_array( substr( $base, 0, -5 ), $allowed, true ) ) ) {
+				wp_delete_file( $path );
+				++$removed;
+			}
+		}
+		delete_transient( self::cache_key() );
+		return rest_ensure_response( array( 'ok' => true, 'removed' => $removed ) );
 	}
 
 	public static function rest_cancel() {

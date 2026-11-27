@@ -37,22 +37,33 @@ class YS_Frontend {
 		return self::player( $post );
 	}
 
-	/** Oynatıcı HTML'i; ses yoksa ya da yazı sonradan değiştiyse boş döner. */
+	/** Oynatıcı gösterilmediğinde sayfa kaynağına neden yazılır (yalnızca sesi olan yazılarda). */
+	private static function why( $post, $reason ) {
+		return '<!-- seslendir: oynatici gizli (' . esc_html( $reason ) . ') -->';
+	}
+
+	/** Oynatıcı HTML'i; ses yoksa ya da yazı sonradan değiştiyse boş (yalnızca açıklayıcı bir yorum) döner. */
 	public static function player( $post ) {
-		if ( ! in_array( $post->post_type, YS_Settings::post_types(), true ) || 'publish' !== $post->post_status || post_password_required( $post ) ) {
-			return '';
-		}
 		$att = YS_Storage::attachment_id( $post->ID );
 		if ( ! $att ) {
 			return '';
 		}
+		if ( ! in_array( $post->post_type, YS_Settings::post_types(), true ) ) {
+			return self::why( $post, 'yazi turu ayarlarda secili degil: ' . $post->post_type );
+		}
+		if ( 'publish' !== $post->post_status ) {
+			return self::why( $post, 'yazi yayimlanmamis: ' . $post->post_status );
+		}
+		if ( post_password_required( $post ) ) {
+			return self::why( $post, 'parola korumali' );
+		}
 		$sig = (string) get_post_meta( $post->ID, YS_Storage::META_SIG, true );
 		if ( ! hash_equals( $sig, YS_Storage::src_sig( $post ) ) ) {
-			return ''; // Yazı sesten sonra değişmiş: eski sesi göstermeyiz.
+			return self::why( $post, 'yazi sesten sonra degismis; sesi yeniden uretin' ); // Eski sesi göstermeyiz.
 		}
 		$url = wp_get_attachment_url( $att );
 		if ( ! $url ) {
-			return '';
+			return self::why( $post, 'ses dosyasinin adresi alinamadi' );
 		}
 
 		$out = '';

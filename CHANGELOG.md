@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.1] - 2026-11-27
+### Added
+- When a post has audio but the player is hidden (post type not selected, not published, password protected, edited after the audio was made, no file URL), the page source now contains an HTML comment `<!-- seslendir: oynatici gizli (...) -->` naming the reason. Posts without audio are unchanged.
+
 ## [1.6.0] - 2026-11-27
 ### Added
 - Two more models: **EMA Lightning** (`ema`, 48 kHz, Apache-2.0) and **Zerre-TTS** (`zerre`, 24 kHz, two voices, Apache-2.0), both run with ONNX Runtime Web. The workflow `Build engines` publishes `motor-ema` and `motor-zerre`. Both were run end to end on the real model files; the EMA output matches the reference demo's.

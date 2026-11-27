@@ -59,7 +59,12 @@ class YS_Frontend {
 		}
 		$sig = (string) get_post_meta( $post->ID, YS_Storage::META_SIG, true );
 		if ( ! hash_equals( $sig, YS_Storage::src_sig( $post ) ) ) {
-			return self::why( $post, 'yazi sesten sonra degismis; sesi yeniden uretin' ); // Eski sesi göstermeyiz.
+			// Ham içerik değişmiş olabilir (ör. editör kaydı biçimi değiştirdi) ama okunacak metin aynı kalmış olabilir:
+			// yönetim ekranındaki "Güncel" ölçütüyle denetler, metin aynıysa imzayı tazeler.
+			if ( 'ok' !== YS_Storage::state( $post ) ) {
+				return self::why( $post, 'yazi sesten sonra degismis; sesi yeniden uretin' ); // Eski sesi göstermeyiz.
+			}
+			update_post_meta( $post->ID, YS_Storage::META_SIG, YS_Storage::src_sig( $post ) );
 		}
 		$url = wp_get_attachment_url( $att );
 		if ( ! $url ) {

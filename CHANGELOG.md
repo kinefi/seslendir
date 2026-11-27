@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.4] - 2026-11-27
+### Fixed
+- Automatic insertion no longer depends on `in_the_loop()` / `is_main_query()`, which return false in some themes and page builders so the player was never added. It now checks that the content belongs to the queried post and inserts the player once.
+### Added
+- A missing audio file is reported in the page-source comment too.
+
 ## [1.6.3] - 2026-11-27
 ### Changed
 - A post edited after its audio was made no longer hides the player. The player is shown with a short note ("Yazı bu ses kaydından sonra güncellendi; kayıt yazının son halini yansıtmayabilir."), which can be changed with the `ys_stale_note` filter.

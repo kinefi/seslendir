@@ -9,6 +9,7 @@ class YS_Frontend {
 
 	private static $style_printed = false;
 	private static $shortcode_used = array();
+	private static $auto_used = array();
 
 	public static function init() {
 		add_filter( 'the_content', array( __CLASS__, 'prepend' ), 20 );
@@ -17,13 +18,15 @@ class YS_Frontend {
 	}
 
 	public static function prepend( $content ) {
-		if ( ! YS_Settings::get( 'autoinsert' ) || ! is_singular() || ! in_the_loop() || ! is_main_query() ) {
+		if ( ! YS_Settings::get( 'autoinsert' ) || ! is_singular() ) {
 			return $content;
 		}
 		$post = get_post();
-		if ( ! $post || isset( self::$shortcode_used[ $post->ID ] ) ) {
+		// Ana yazı mı? in_the_loop()/is_main_query() bazı tema ve sayfa oluşturucularda yanlış döner; kimlik karşılaştırması güvenilirdir.
+		if ( ! $post || (int) $post->ID !== (int) get_queried_object_id() || isset( self::$shortcode_used[ $post->ID ] ) || isset( self::$auto_used[ $post->ID ] ) ) {
 			return $content;
 		}
+		self::$auto_used[ $post->ID ] = true;
 		return self::player( $post ) . $content;
 	}
 
@@ -46,7 +49,8 @@ class YS_Frontend {
 	public static function player( $post ) {
 		$att = YS_Storage::attachment_id( $post->ID );
 		if ( ! $att ) {
-			return '';
+			// Kayıt var ama dosya yoksa nedenini yazalım; hiç ses üretilmemiş yazılarda sessiz kalırız.
+			return get_post_meta( $post->ID, YS_Storage::META_ATT, true ) ? self::why( $post, 'ses dosyasi bulunamadi (silinmis ya da tasinmis olabilir)' ) : '';
 		}
 		if ( ! in_array( $post->post_type, YS_Settings::post_types(), true ) ) {
 			return self::why( $post, 'yazi turu ayarlarda secili degil: ' . $post->post_type );
